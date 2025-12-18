@@ -1,0 +1,64 @@
+# =====================
+# Go build artifacts
+# =====================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Binaries
+/bin/
+/build/
+/dist/
+
+# Go test artifacts
+*.test
+*.out
+
+
+# =====================
+# Dependency cache (optional)
+# =====================
+/vendor/
+
+# =====================
+# Editor / IDE files
+# =====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# =====================
+# OS files
+# =====================
+.DS_Store
+Thumbs.db
+
+# =====================
+# Application data
+# =====================
+/data/
+*.db
+*.db-shm
+*.db-wal
+
+# =====================
+# Logs
+# =====================
+*.log
+
+# =====================
+# Media files (optional)
+# =====================
+*.mp3
+*.wav
+*.flac
+
+# =====================
+# Environment files
+# =====================
+.env
+.env.*
