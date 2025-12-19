@@ -1,4 +1,4 @@
-package audio
+package radio
 
 import "encoding/binary"
 
@@ -18,4 +18,10 @@ func CreateWAVHeader(sampleRate int) []byte {
 	copy(header[36:40], "data")
 	binary.LittleEndian.PutUint32(header[40:44], 0xFFFFFFFF)
 	return header
+}
+
+func calculateStreamInterval(sampleRate int) int {
+	bytesPerSecond := sampleRate * 2 * 2
+	intervalMs := (1024 * 1000) / bytesPerSecond
+	return intervalMs * 95 / 100
 }

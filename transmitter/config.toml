@@ -1,0 +1,3 @@
+[App]
+Port = 8080
+SongsFolder = "songs"

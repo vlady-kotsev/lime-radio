@@ -1,0 +1,1 @@
+SELECT id, artist, title, path FROM songs;

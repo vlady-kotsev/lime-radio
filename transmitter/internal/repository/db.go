@@ -2,20 +2,20 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	_ "embed"
 	"fmt"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 	_ "modernc.org/sqlite"
 )
 
-//go:embed sql/schema.sql
+//go:embed schema/schema.sql
 var schemaSQL string
 
 type Storage struct {
-	db *sql.DB
+	DB *sqlx.DB
 }
 
 func NewStorage(lc fx.Lifecycle, logger *zap.Logger) (*Storage, error) {
@@ -26,12 +26,12 @@ func NewStorage(lc fx.Lifecycle, logger *zap.Logger) (*Storage, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	storage := &Storage{db: db}
+	storage := &Storage{DB: db}
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
 			logger.Info("Creating database schema")
-			_, err = storage.db.Exec(schemaSQL)
+			_, err = storage.DB.Exec(schemaSQL)
 			return err
 		},
 		OnStop: func(context.Context) error {
@@ -43,13 +43,12 @@ func NewStorage(lc fx.Lifecycle, logger *zap.Logger) (*Storage, error) {
 	return storage, nil
 }
 
-func openDB(path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", path)
+func openDB(path string) (*sqlx.DB, error) {
+	db, err := sqlx.Open("sqlite", path)
 	if err != nil {
 		return nil, err
 	}
 
-	// SQLite works best with a single writer
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
 

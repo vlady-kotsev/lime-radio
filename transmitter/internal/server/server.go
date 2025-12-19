@@ -2,8 +2,11 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/repository"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -16,11 +19,22 @@ type Server struct {
 	storage *repository.Storage
 }
 
-func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage *repository.Storage) *Server {
+func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage *repository.Storage, config *config.Config) *Server {
+	app := fiber.New()
+	
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+		AllowHeaders: "Origin,Content-Type,Accept,Authorization",
+		AllowCredentials: false,
+		ExposeHeaders: "Content-Length,Content-Range",
+		MaxAge: 86400,
+	}))
+	
 	s := &Server{
-		fiber:   fiber.New(),
+		fiber:   app,
 		logger:  logger,
-		port:    ":8080",
+		port:    fmt.Sprintf(":%d", config.App.Port),
 		storage: storage,
 	}
 	lc.Append(
