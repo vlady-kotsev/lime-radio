@@ -80,7 +80,9 @@ func (sr *SongRepository) UpdateSongs(songs []*domain.Song) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	var dtos []SongDTO
 	err = tx.Select(&dtos, getSongs)

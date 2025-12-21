@@ -51,7 +51,11 @@ func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage *repository.Storage,
 		fx.Hook{
 			OnStart: func(ctx context.Context) error {
 				logger.Info("Starting HTTP server at", zap.String("addr", s.port))
-				go s.fiber.Listen(s.port)
+				go func() {
+					if err := s.fiber.Listen(s.port); err != nil {
+						logger.Error("Failed to start server", zap.Error(err))
+					}
+				}()
 				return nil
 			},
 			OnStop: func(ctx context.Context) error {

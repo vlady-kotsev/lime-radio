@@ -69,7 +69,7 @@ func (gt *GetTokenHandler) Handle(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"success": true,
 		"expires": expiresAt.Unix(),
-		"token": token,
+		"token":   token,
 	})
 }
 

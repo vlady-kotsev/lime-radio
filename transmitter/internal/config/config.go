@@ -17,9 +17,9 @@ type AppConfig struct {
 }
 
 type AuthConfig struct {
-	SharedSecret   Secret   `mapstructure:"shared_secret"`
-	AllowedOrigins []string `mapstructure:"allowed_origins"`
-	TokenExpirationMinutes uint `mapstructure:"expiration_minutes"`
+	SharedSecret           Secret   `mapstructure:"shared_secret"`
+	AllowedOrigins         []string `mapstructure:"allowed_origins"`
+	TokenExpirationMinutes uint     `mapstructure:"expiration_minutes"`
 }
 
 func Load() (*Config, error) {

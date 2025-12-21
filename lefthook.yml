@@ -3,12 +3,12 @@ pre-commit:
   commands:
     gofmt:
       glob: "transmitter/**/*.go"
-      run: cd transmitter && gofmt -w {staged_files}
+      run: gofmt -w {staged_files}
       stage_fixed: true
     
     goimports:
       glob: "transmitter/**/*.go"
-      run: cd transmitter && goimports -w {staged_files}
+      run: goimports -w {staged_files}
       stage_fixed: true
     
     govet:
