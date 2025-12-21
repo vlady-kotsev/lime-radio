@@ -23,6 +23,11 @@ func ProvideHandlers() fx.Option {
 				fx.As(new(Handlerer)),
 				fx.ResultTags(`group:"handlers"`),
 			),
+			fx.Annotate(
+				NewGetTokenHandler,
+				fx.As(new(Handlerer)),
+				fx.ResultTags(`group:"handlers"`),
+			),
 		),
 	)
 }

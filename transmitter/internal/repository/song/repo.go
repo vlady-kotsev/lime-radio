@@ -3,6 +3,7 @@ package songrepository
 import (
 	_ "embed"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/domain"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/repository"
 )
@@ -12,7 +13,14 @@ var (
 	insertSong string
 	//go:embed sql/getSongs.sql
 	getSongs string
+	//go:embed sql/deleteSong.sql
+	deleteSong string
 )
+
+type SongMapEntry struct {
+	Artist string
+	Title  string
+}
 
 type SongRepository struct {
 	storage *repository.Storage
@@ -22,28 +30,94 @@ func NewSongRepository(storage *repository.Storage) *SongRepository {
 	return &SongRepository{storage: storage}
 }
 
-func (sr *SongRepository) InsertSongs(songs []*domain.Song) error {
-	tx, err := sr.storage.DB.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
+func (sr *SongRepository) insertSongs(tx *sqlx.Tx, dtos []*SongDTO) error {
 	stmt, err := tx.Prepare(insertSong)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	for _, song := range songs {
+	for _, dto := range dtos {
 		if _, err := stmt.Exec(
-			song.Artist,
-			song.Title,
-			song.Path,
+			dto.Artist,
+			dto.Title,
+			dto.Path,
 		); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func (sr *SongRepository) deleteSongs(tx *sqlx.Tx, dtos []*SongDTO) error {
+	stmt, err := tx.Prepare(deleteSong)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, dto := range dtos {
+		if _, err := stmt.Exec(
+			dto.Artist,
+			dto.Title,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (sr *SongRepository) UpdateSongs(songs []*domain.Song) error {
+	songsMap := make(map[SongMapEntry]SongDTO)
+	for _, song := range songs {
+		songsMap[SongMapEntry{
+			Title:  song.Title,
+			Artist: song.Artist,
+		}] = SongDTO{Artist: song.Artist, Title: song.Title, Path: song.Path}
+	}
+
+	tx, err := sr.storage.DB.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var dtos []SongDTO
+	err = tx.Select(&dtos, getSongs)
+	if err != nil {
+		return err
+	}
+	dtosMap := make(map[SongMapEntry]SongDTO)
+	for _, dto := range dtos {
+		dtosMap[SongMapEntry{
+			Title:  dto.Title,
+			Artist: dto.Artist,
+		}] = dto
+	}
+
+	deletedSongs := make([]*SongDTO, 0, len(dtosMap))
+	addedSongs := make([]*SongDTO, 0, len(songsMap))
+	for songEntry, songDTO := range songsMap {
+		if _, ok := dtosMap[songEntry]; !ok {
+			addedSongs = append(addedSongs, &songDTO)
+		}
+	}
+	for songEntry, songDTO := range dtosMap {
+		if _, ok := songsMap[songEntry]; !ok {
+			deletedSongs = append(deletedSongs, &songDTO)
+		}
+	}
+
+	err = sr.insertSongs(tx, addedSongs)
+	if err != nil {
+		return err
+	}
+
+	err = sr.deleteSongs(tx, deletedSongs)
+	if err != nil {
+		return err
+	}
+
 	return tx.Commit()
 }
 

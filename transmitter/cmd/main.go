@@ -6,6 +6,7 @@ import (
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/repository"
 	songrepository "github.com/vlady-kotsev/lime-radio/transmitter/internal/repository/song"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/server"
+	"github.com/vlady-kotsev/lime-radio/transmitter/internal/service/auth"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/service/radio"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
@@ -25,6 +26,7 @@ func main() {
 			songrepository.NewSongRepository,
 			radio.NewPlaylist,
 			config.Load,
+			auth.NewJWTService,
 		),
 		handler.ProvideHandlers(),
 		fx.Invoke(

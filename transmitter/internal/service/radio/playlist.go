@@ -68,7 +68,7 @@ func (pl *Playlist) updateSongs() error {
 		songs = append(songs, domain.NewSong(artist, title, filePath))
 	}
 
-	return pl.songRepo.InsertSongs(songs)
+	return pl.songRepo.UpdateSongs(songs)
 }
 
 func (pl *Playlist) getAllSongs() ([]*domain.Song, error) {

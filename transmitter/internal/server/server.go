@@ -3,11 +3,14 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
+	"github.com/vlady-kotsev/lime-radio/transmitter/internal/middleware"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/repository"
+	"github.com/vlady-kotsev/lime-radio/transmitter/internal/service/auth"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -19,18 +22,25 @@ type Server struct {
 	storage *repository.Storage
 }
 
-func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage *repository.Storage, config *config.Config) *Server {
+func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage *repository.Storage, config *config.Config, auth *auth.JWTService) *Server {
 	app := fiber.New()
-	
+
+	allowedOrigins := "*"
+	if len(config.Auth.AllowedOrigins) > 0 {
+		allowedOrigins = strings.Join(config.Auth.AllowedOrigins, ",")
+	}
+
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
-		AllowMethods: "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
-		AllowHeaders: "Origin,Content-Type,Accept,Authorization",
-		AllowCredentials: false,
-		ExposeHeaders: "Content-Length,Content-Range",
-		MaxAge: 86400,
+		AllowOrigins:     allowedOrigins,
+		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
+		AllowCredentials: true,
+		ExposeHeaders:    "Content-Length,Content-Range",
+		MaxAge:           86400,
 	}))
-	
+
+	app.Use(middleware.JWTAuth(auth))
+
 	s := &Server{
 		fiber:   app,
 		logger:  logger,

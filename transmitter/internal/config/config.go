@@ -7,10 +7,19 @@ import (
 )
 
 type Config struct {
-	App struct {
-		Port uint32
-		SongsFolder string
-	}
+	App  AppConfig  `mapstructure:"app"`
+	Auth AuthConfig `mapstructure:"auth"`
+}
+
+type AppConfig struct {
+	Port        uint32 `mapstructure:"port"`
+	SongsFolder string `mapstructure:"songs_folder"`
+}
+
+type AuthConfig struct {
+	SharedSecret   Secret   `mapstructure:"shared_secret"`
+	AllowedOrigins []string `mapstructure:"allowed_origins"`
+	TokenExpirationMinutes uint `mapstructure:"expiration_minutes"`
 }
 
 func Load() (*Config, error) {
