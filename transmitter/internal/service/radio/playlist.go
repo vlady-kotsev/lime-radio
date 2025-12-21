@@ -2,7 +2,6 @@ package radio
 
 import (
 	"context"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,7 +36,11 @@ func NewPlaylist(lc fx.Lifecycle, songRepo *songrepository.SongRepository, confi
 func (pl *Playlist) updateSongs() error {
 	entries, err := os.ReadDir(pl.songsFolder)
 	if err != nil {
-		log.Fatal(err)
+		return err
+	}
+	root, err := os.OpenRoot(pl.songsFolder)
+	if err != nil {
+		return err
 	}
 	var songs []*domain.Song
 	for _, e := range entries {
@@ -45,7 +48,7 @@ func (pl *Playlist) updateSongs() error {
 			continue
 		}
 		filePath := filepath.Join(pl.songsFolder, e.Name())
-		f, err := os.Open(filePath)
+		f, err := root.Open(filePath)
 		if err != nil {
 			return err
 		}
