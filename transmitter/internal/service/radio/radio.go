@@ -2,6 +2,7 @@ package radio
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -41,7 +42,11 @@ func NewStation(lc fx.Lifecycle, logger *zap.Logger, pl *Playlist, config *confi
 
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
-			go r.startBroadcast()
+			go func() {
+				if err := r.startBroadcast(); err != nil {
+					logger.Error("Broadcast failed", zap.Error(err))
+				}
+			}()
 			return nil
 		},
 	})
@@ -86,11 +91,10 @@ func (r *Radio) broadcast(data []byte) {
 	}
 }
 
-func (r *Radio) startBroadcast() {
+func (r *Radio) startBroadcast() error {
 
 	if len(r.songs) == 0 {
-		r.logger.Fatal("No MP3 files found in songs directory")
-		return
+		return fmt.Errorf("No MP3 files found in songs directory")
 	}
 
 	for {
@@ -108,7 +112,10 @@ func (r *Radio) startBroadcast() {
 			decoder, err := mp3.NewDecoder(f)
 			if err != nil {
 				r.logger.Error("Error creating decoder", zap.String("path", song.Path), zap.Error(err))
-				f.Close()
+				err = f.Close()
+				if err != nil {
+					return err
+				}
 				continue
 			}
 
@@ -134,7 +141,10 @@ func (r *Radio) startBroadcast() {
 					r.broadcast(buf[:n])
 				}
 			}
-			f.Close()
+			err = f.Close()
+			if err != nil {
+				return err
+			}
 		}
 	}
 }

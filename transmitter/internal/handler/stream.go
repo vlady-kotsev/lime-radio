@@ -41,12 +41,20 @@ func (h *StreamHandler) Handle(c *fiber.Ctx) error {
 		defer h.station.RemoveClient(client)
 
 		if h.station.GetSampleRate() > 0 {
-			header := radio.CreateWAVHeader(h.station.GetSampleRate())
-			if _, err := w.Write(header); err != nil {
+			header, err := radio.CreateWAVHeader(h.station.GetSampleRate())
+			if err != nil {
+				h.logger.Error("Error creating WAV header", zap.Error(err))
+				return
+			}
+			if _, err = w.Write(header); err != nil {
 				h.logger.Error("Error writing WAV header", zap.Error(err))
 				return
 			}
-			w.Flush()
+			err = w.Flush()
+			if err != nil {
+				h.logger.Error("Error flushing WAV header", zap.Error(err))
+				return
+			}
 		}
 
 		for data := range client {
@@ -54,7 +62,11 @@ func (h *StreamHandler) Handle(c *fiber.Ctx) error {
 				h.logger.Debug("Client disconnected", zap.Error(err))
 				return
 			}
-			w.Flush()
+			err := w.Flush()
+			if err != nil {
+				h.logger.Error("Error flushing data", zap.Error(err))
+				return
+			}
 		}
 	})
 
