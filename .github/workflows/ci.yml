@@ -12,7 +12,7 @@ jobs:
     
     strategy:
       matrix:
-        go-version: ['1.23']
+        go-version: ['1.24']
     
     steps:
     - uses: actions/checkout@v4
@@ -56,7 +56,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
     
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v4
@@ -74,7 +74,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
     
     - name: Build
       run: cd transmitter && go build -v ./...
@@ -91,7 +91,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
     
     - name: Install Gosec
       run: go install github.com/securego/gosec/v2/cmd/gosec@latest
