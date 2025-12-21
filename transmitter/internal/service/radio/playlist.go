@@ -38,17 +38,19 @@ func (pl *Playlist) updateSongs() error {
 	if err != nil {
 		return err
 	}
-	root, err := os.OpenRoot(pl.songsFolder)
-	if err != nil {
-		return err
-	}
 	var songs []*domain.Song
 	for _, e := range entries {
 		if e.IsDir() {
 			continue
 		}
 		filePath := filepath.Join(pl.songsFolder, e.Name())
-		f, err := root.Open(filePath)
+
+		cleanPath := filepath.Clean(filePath)
+		if !strings.HasPrefix(cleanPath, filepath.Clean(pl.songsFolder)) {
+			continue
+		}
+
+		f, err := os.Open(cleanPath)
 		if err != nil {
 			return err
 		}
