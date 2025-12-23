@@ -9,7 +9,7 @@ import (
 )
 
 // JWTAuth creates middleware that validates JWT tokens
-func JWTAuth(jwtService *auth.JWTService) fiber.Handler {
+func JWTAuth(jwtService auth.JWTServicer) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if c.Method() == "OPTIONS" {
 			return c.Next()

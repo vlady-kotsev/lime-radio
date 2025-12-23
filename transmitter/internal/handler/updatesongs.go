@@ -8,14 +8,14 @@ import (
 )
 
 type UpdateSongsHandler struct {
-	radio  *radio.Radio
+	radio  radio.Radioer
 	logger *zap.Logger
 	path   string
 }
 
 var _ Handlerer = (*UpdateSongsHandler)(nil)
 
-func NewUpdateSongsHandler(radio *radio.Radio, logger *zap.Logger) *UpdateSongsHandler {
+func NewUpdateSongsHandler(radio radio.Radioer, logger *zap.Logger) *UpdateSongsHandler {
 	return &UpdateSongsHandler{
 		radio:  radio,
 		logger: logger,

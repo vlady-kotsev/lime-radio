@@ -24,11 +24,13 @@ type Radio struct {
 	sampleRate int
 	logger     *zap.Logger
 	songs      []*domain.Song
-	pl         *Playlist
+	pl         Playlister
 }
 
-func NewStation(lc fx.Lifecycle, logger *zap.Logger, pl *Playlist, config *config.Config) (*Radio, error) {
-	songs, err := pl.getAllSongs()
+var _ Radioer = (*Radio)(nil)
+
+func NewRadio(lc fx.Lifecycle, logger *zap.Logger, pl Playlister, config *config.Config) (*Radio, error) {
+	songs, err := pl.GetAllSongs()
 	if err != nil {
 		return nil, err
 	}
@@ -75,6 +77,28 @@ func (r *Radio) RemoveClient(client chan []byte) {
 	}
 }
 
+func (r *Radio) GetSampleRate() int {
+	return r.sampleRate
+}
+
+func (r *Radio) UpdateSongs() error {
+	err := r.pl.UpdateSongs()
+	if err != nil {
+		return err
+	}
+	songs, err := r.pl.GetAllSongs()
+	if err != nil {
+		return err
+	}
+
+	r.songs = songs
+	return nil
+}
+
+func (r *Radio) GetAllSongs() ([]*domain.Song, error) {
+	return r.pl.GetAllSongs()
+}
+
 func (r *Radio) broadcast(data []byte) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -86,7 +110,7 @@ func (r *Radio) broadcast(data []byte) {
 		select {
 		case client <- dataCopy:
 		default:
-			// Client buffer full - normal for slow clients
+			// drop packets
 		}
 	}
 }
@@ -94,79 +118,55 @@ func (r *Radio) broadcast(data []byte) {
 func (r *Radio) startBroadcast() error {
 
 	if len(r.songs) == 0 {
-		return fmt.Errorf("No MP3 files found in songs directory")
+		return fmt.Errorf("no mp3 files found in songs directory")
 	}
 
 	for {
 		for _, song := range r.songs {
-			songName := filepath.Base(song.Path)
-			songName = strings.TrimSuffix(songName, ".mp3")
-			r.logger.Info("Now playing", zap.String("song", songName))
+			func() {
+				songName := filepath.Base(song.Path)
+				songName = strings.TrimSuffix(songName, ".mp3")
+				r.logger.Info("Now playing", zap.String("song", songName))
 
-			f, err := os.Open(song.Path)
-			if err != nil {
-				r.logger.Error("Error opening song", zap.String("path", song.Path), zap.Error(err))
-				continue
-			}
-
-			decoder, err := mp3.NewDecoder(f)
-			if err != nil {
-				r.logger.Error("Error creating decoder", zap.String("path", song.Path), zap.Error(err))
-				err = f.Close()
+				f, err := os.Open(song.Path)
 				if err != nil {
-					return err
+					r.logger.Error("Error opening song", zap.String("path", song.Path), zap.Error(err))
+					return
 				}
-				continue
-			}
+				defer func() {
+					if err := f.Close(); err != nil {
+						r.logger.Error("Error closing file", zap.String("path", song.Path), zap.Error(err))
+					}
+				}()
 
-			r.sampleRate = decoder.SampleRate()
-
-			buf := make([]byte, 1024)
-
-			intervalMs := calculateStreamInterval(decoder.SampleRate())
-			ticker := time.NewTicker(time.Duration(intervalMs) * time.Millisecond)
-
-			for range ticker.C {
-				n, err := decoder.Read(buf)
-				if err == io.EOF {
-					ticker.Stop()
-					break
-				}
+				decoder, err := mp3.NewDecoder(f)
 				if err != nil {
-					r.logger.Error("Error reading song data", zap.String("path", song.Path), zap.Error(err))
-					ticker.Stop()
-					break
+					r.logger.Error("Error creating decoder", zap.String("path", song.Path), zap.Error(err))
+					return
 				}
-				if n > 0 {
-					r.broadcast(buf[:n])
+
+				r.sampleRate = decoder.SampleRate()
+
+				buf := make([]byte, 1024)
+
+				intervalMs := calculateStreamInterval(decoder.SampleRate())
+				ticker := time.NewTicker(time.Duration(intervalMs) * time.Millisecond)
+				defer ticker.Stop()
+
+				for range ticker.C {
+					n, err := decoder.Read(buf)
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						r.logger.Error("Error reading song data", zap.String("path", song.Path), zap.Error(err))
+						break
+					}
+					if n > 0 {
+						r.broadcast(buf[:n])
+					}
 				}
-			}
-			err = f.Close()
-			if err != nil {
-				return err
-			}
+			}()
 		}
 	}
-}
-
-func (r *Radio) GetSampleRate() int {
-	return r.sampleRate
-}
-
-func (r *Radio) UpdateSongs() error {
-	err := r.pl.updateSongs()
-	if err != nil {
-		return err
-	}
-	songs, err := r.pl.getAllSongs()
-	if err != nil {
-		return err
-	}
-
-	r.songs = songs
-	return nil
-}
-
-func (r *Radio) GetAllSongs() ([]*domain.Song, error) {
-	return r.pl.getAllSongs()
 }

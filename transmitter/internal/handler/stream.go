@@ -9,18 +9,18 @@ import (
 )
 
 type StreamHandler struct {
-	station *radio.Radio
-	logger  *zap.Logger
-	path    string
+	radio  radio.Radioer
+	logger *zap.Logger
+	path   string
 }
 
 var _ Handlerer = (*StreamHandler)(nil)
 
-func NewStreamHandler(station *radio.Radio, logger *zap.Logger) *StreamHandler {
+func NewStreamHandler(radio radio.Radioer, logger *zap.Logger) *StreamHandler {
 	return &StreamHandler{
-		station: station,
-		logger:  logger,
-		path:    "/stream",
+		radio:  radio,
+		logger: logger,
+		path:   "/stream",
 	}
 }
 
@@ -37,11 +37,11 @@ func (h *StreamHandler) Handle(c *fiber.Ctx) error {
 	c.Set("Access-Control-Expose-Headers", "Content-Length, Content-Range")
 
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
-		client := h.station.AddClient()
-		defer h.station.RemoveClient(client)
+		client := h.radio.AddClient()
+		defer h.radio.RemoveClient(client)
 
-		if h.station.GetSampleRate() > 0 {
-			header, err := radio.CreateWAVHeader(h.station.GetSampleRate())
+		if h.radio.GetSampleRate() > 0 {
+			header, err := radio.CreateWAVHeader(h.radio.GetSampleRate())
 			if err != nil {
 				h.logger.Error("Error creating WAV header", zap.Error(err))
 				return

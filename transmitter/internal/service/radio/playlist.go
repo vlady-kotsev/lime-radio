@@ -15,10 +15,12 @@ import (
 
 type Playlist struct {
 	songsFolder string
-	songRepo    *songrepository.SongRepository
+	songRepo    songrepository.SongRepositorer
 }
 
-func NewPlaylist(lc fx.Lifecycle, songRepo *songrepository.SongRepository, config *config.Config) *Playlist {
+var _ Playlister = (*Playlist)(nil)
+
+func NewPlaylist(lc fx.Lifecycle, songRepo songrepository.SongRepositorer, config *config.Config) *Playlist {
 
 	pl := Playlist{
 		songsFolder: config.App.SongsFolder,
@@ -27,13 +29,13 @@ func NewPlaylist(lc fx.Lifecycle, songRepo *songrepository.SongRepository, confi
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
-			return pl.updateSongs()
+			return pl.UpdateSongs()
 		},
 	})
 	return &pl
 }
 
-func (pl *Playlist) updateSongs() error {
+func (pl *Playlist) UpdateSongs() error {
 	entries, err := os.ReadDir(pl.songsFolder)
 	if err != nil {
 		return err
@@ -76,7 +78,7 @@ func (pl *Playlist) updateSongs() error {
 	return pl.songRepo.UpdateSongs(songs)
 }
 
-func (pl *Playlist) getAllSongs() ([]*domain.Song, error) {
+func (pl *Playlist) GetAllSongs() ([]*domain.Song, error) {
 	songDTOs, err := pl.songRepo.GetAllSongs()
 	if err != nil {
 		return []*domain.Song{}, nil

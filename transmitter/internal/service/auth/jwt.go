@@ -12,6 +12,8 @@ type JWTService struct {
 	secret []byte
 }
 
+var _ JWTServicer = (*JWTService)(nil)
+
 func NewJWTService(config *config.Config) (*JWTService, error) {
 	if config.Auth.SharedSecret.IsEmpty() {
 		return nil, fmt.Errorf("jwt secret not configured")

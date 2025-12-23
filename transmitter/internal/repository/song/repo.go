@@ -23,10 +23,12 @@ type SongMapEntry struct {
 }
 
 type SongRepository struct {
-	storage *repository.Storage
+	storage repository.Storager
 }
 
-func NewSongRepository(storage *repository.Storage) *SongRepository {
+var _ SongRepositorer = (*SongRepository)(nil)
+
+func NewSongRepository(storage repository.Storager) *SongRepository {
 	return &SongRepository{storage: storage}
 }
 
@@ -76,7 +78,7 @@ func (sr *SongRepository) UpdateSongs(songs []*domain.Song) error {
 		}] = SongDTO{Artist: song.Artist, Title: song.Title, Path: song.Path}
 	}
 
-	tx, err := sr.storage.DB.Beginx()
+	tx, err := sr.storage.Beginx()
 	if err != nil {
 		return err
 	}
@@ -125,7 +127,7 @@ func (sr *SongRepository) UpdateSongs(songs []*domain.Song) error {
 
 func (sr *SongRepository) GetAllSongs() ([]*SongDTO, error) {
 	var dtos []*SongDTO
-	if err := sr.storage.DB.Select(&dtos, getSongs); err != nil {
+	if err := sr.storage.Select(&dtos, getSongs); err != nil {
 		return nil, err
 	}
 

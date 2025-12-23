@@ -19,10 +19,10 @@ type Server struct {
 	fiber   *fiber.App
 	logger  *zap.Logger
 	port    string
-	storage *repository.Storage
+	storage repository.Storager
 }
 
-func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage *repository.Storage, config *config.Config, auth *auth.JWTService) *Server {
+func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage repository.Storager, auth auth.JWTServicer, config *config.Config) *Server {
 	app := fiber.New()
 
 	allowedOrigins := "*"
@@ -53,7 +53,7 @@ func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage *repository.Storage,
 				logger.Info("Starting HTTP server at", zap.String("addr", s.port))
 				go func() {
 					if err := s.fiber.Listen(s.port); err != nil {
-						logger.Error("Failed to start server", zap.Error(err))
+						logger.Fatal("Failed to start server", zap.Error(err))
 					}
 				}()
 				return nil
@@ -68,8 +68,4 @@ func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage *repository.Storage,
 
 func (s *Server) GetApp() *fiber.App {
 	return s.fiber
-}
-
-func (s *Server) Run() {
-
 }

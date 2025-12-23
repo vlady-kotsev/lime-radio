@@ -18,6 +18,8 @@ type Storage struct {
 	DB *sqlx.DB
 }
 
+var _ Storager = (*Storage)(nil)
+
 func NewStorage(lc fx.Lifecycle, logger *zap.Logger) (*Storage, error) {
 	path := "internal/repository/data/data.db" // or get from config
 
@@ -41,6 +43,14 @@ func NewStorage(lc fx.Lifecycle, logger *zap.Logger) (*Storage, error) {
 	})
 
 	return storage, nil
+}
+
+func (s *Storage) Beginx() (*sqlx.Tx, error) {
+	return s.DB.Beginx()
+}
+
+func (s *Storage) Select(dest any, query string, args ...any) error {
+	return s.DB.Select(dest, query, args...)
 }
 
 func openDB(path string) (*sqlx.DB, error) {

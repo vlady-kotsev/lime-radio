@@ -12,14 +12,14 @@ import (
 
 type GetTokenHandler struct {
 	logger     *zap.Logger
-	jwtService *auth.JWTService
+	jwtService auth.JWTServicer
 	config     *config.Config
 	path       string
 }
 
 var _ Handlerer = (*GetTokenHandler)(nil)
 
-func NewGetTokenHandler(logger *zap.Logger, jwtService *auth.JWTService, config *config.Config) *GetTokenHandler {
+func NewGetTokenHandler(logger *zap.Logger, jwtService auth.JWTServicer, config *config.Config) *GetTokenHandler {
 	return &GetTokenHandler{
 		logger:     logger,
 		jwtService: jwtService,
