@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/service/auth"
+	"github.com/vlady-kotsev/lime-radio/shared/service/auth"
 )
 
 // JWTAuth creates middleware that validates JWT tokens

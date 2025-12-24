@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
+	"github.com/vlady-kotsev/lime-radio/shared/config"
 )
 
 type JWTService struct {
@@ -14,12 +14,12 @@ type JWTService struct {
 
 var _ JWTServicer = (*JWTService)(nil)
 
-func NewJWTService(config *config.Config) (*JWTService, error) {
-	if config.Auth.SharedSecret.IsEmpty() {
+func NewJWTService(sharedSecret config.Secret) (*JWTService, error) {
+	if sharedSecret.IsEmpty() {
 		return nil, fmt.Errorf("jwt secret not configured")
 	}
 	return &JWTService{
-		secret: config.Auth.SharedSecret.Bytes(),
+		secret: sharedSecret.Bytes(),
 	}, nil
 }
 

@@ -16,8 +16,7 @@ type Config struct {
 var _ config.AuthConfiger = (*Config)(nil)
 
 type AppConfig struct {
-	Port        uint32 `mapstructure:"port"`
-	SongsFolder string `mapstructure:"songs_folder"`
+	Port uint32 `mapstructure:"port"`
 }
 
 type AuthConfig struct {

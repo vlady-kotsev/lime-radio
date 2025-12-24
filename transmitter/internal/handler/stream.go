@@ -4,6 +4,7 @@ import (
 	"bufio"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/vlady-kotsev/lime-radio/shared/handler"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/service/radio"
 	"go.uber.org/zap"
 )
@@ -14,7 +15,7 @@ type StreamHandler struct {
 	path   string
 }
 
-var _ Handlerer = (*StreamHandler)(nil)
+var _ handler.Handlerer = (*StreamHandler)(nil)
 
 func NewStreamHandler(radio radio.Radioer, logger *zap.Logger) *StreamHandler {
 	return &StreamHandler{

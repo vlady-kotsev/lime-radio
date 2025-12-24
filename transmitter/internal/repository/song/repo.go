@@ -3,8 +3,9 @@ package songrepository
 import (
 	_ "embed"
 
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/domain"
+	"github.com/vlady-kotsev/lime-radio/shared/domain"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/repository"
 )
 
@@ -40,7 +41,11 @@ func (sr *SongRepository) insertSongs(tx *sqlx.Tx, dtos []*SongDTO) error {
 	defer stmt.Close()
 
 	for _, dto := range dtos {
+		if dto.Id == "" {
+			dto.Id = uuid.New().String()
+		}
 		if _, err := stmt.Exec(
+			dto.Id,
 			dto.Artist,
 			dto.Title,
 			dto.Path,

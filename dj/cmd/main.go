@@ -1,16 +1,14 @@
 package main
 
 import (
+	"github.com/vlady-kotsev/lime-radio/dj/internal/config"
+	"github.com/vlady-kotsev/lime-radio/dj/internal/handler"
+	"github.com/vlady-kotsev/lime-radio/dj/internal/server"
 	sharedconfig "github.com/vlady-kotsev/lime-radio/shared/config"
-	sharedhandler "github.com/vlady-kotsev/lime-radio/shared/handler"
 	sharedserver "github.com/vlady-kotsev/lime-radio/shared/server"
+
+	sharedhandler "github.com/vlady-kotsev/lime-radio/shared/handler"
 	"github.com/vlady-kotsev/lime-radio/shared/service/auth"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/handler"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/repository"
-	songrepository "github.com/vlady-kotsev/lime-radio/transmitter/internal/repository/song"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/server"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/service/radio"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
@@ -25,10 +23,6 @@ func main() {
 			zap.NewProduction,
 			fx.Annotate(server.NewServer, fx.As(new(sharedserver.Serverer))),
 			fx.Annotate(config.Load, fx.As(new(sharedconfig.AuthConfiger)), fx.As(fx.Self())),
-			fx.Annotate(repository.NewStorage, fx.As(new(repository.Storager))),
-			fx.Annotate(radio.NewRadio, fx.As(new(radio.Radioer))),
-			fx.Annotate(songrepository.NewSongRepository, fx.As(new(songrepository.SongRepositorer))),
-			fx.Annotate(radio.NewPlaylist, fx.As(new(radio.Playlister))),
 			fx.Annotate(
 				func(cfg *config.Config) (auth.JWTServicer, error) {
 					return auth.NewJWTService(cfg.Auth.SharedSecret)

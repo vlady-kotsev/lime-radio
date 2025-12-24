@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/go-mp3"
+	"github.com/vlady-kotsev/lime-radio/shared/domain"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/domain"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )

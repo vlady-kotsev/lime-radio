@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/vlady-kotsev/lime-radio/shared/handler"
 	songviewmodel "github.com/vlady-kotsev/lime-radio/transmitter/internal/handler/viewmodel"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/service/radio"
 	"go.uber.org/zap"
@@ -13,7 +14,7 @@ type UpdateSongsHandler struct {
 	path   string
 }
 
-var _ Handlerer = (*UpdateSongsHandler)(nil)
+var _ handler.Handlerer = (*UpdateSongsHandler)(nil)
 
 func NewUpdateSongsHandler(radio radio.Radioer, logger *zap.Logger) *UpdateSongsHandler {
 	return &UpdateSongsHandler{

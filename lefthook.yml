@@ -2,39 +2,93 @@ pre-commit:
   parallel: true
   commands:
     gofmt:
-      glob: "transmitter/**/*.go"
+      glob: "{transmitter,shared,dj}/**/*.go"
       run: gofmt -w {staged_files}
       stage_fixed: true
     
     goimports:
-      glob: "transmitter/**/*.go"
+      glob: "{transmitter,shared,dj}/**/*.go"
       run: goimports -w {staged_files}
       stage_fixed: true
     
-    govet:
+    govet-transmitter:
       glob: "transmitter/**/*.go"
       run: cd transmitter && go vet ./...
     
-    golangci-lint:
-      glob: "transmitter/**/*.go"
-      run: cd transmitter && golangci-lint run --timeout=5m
+    govet-shared:
+      glob: "shared/**/*.go"
+      run: cd shared && go vet ./...
     
-    gomod:
+    govet-dj:
+      glob: "dj/**/*.go"
+      run: cd dj && go vet ./...
+    
+    golangci-lint:
+      glob: "{transmitter,shared,dj}/**/*.go"
+      run: |
+        if ls transmitter/*.go >/dev/null 2>&1 || find transmitter -name "*.go" -type f | head -1 | grep -q .; then
+          echo "Running golangci-lint for transmitter..."
+          cd transmitter && golangci-lint run --timeout=5m
+        fi
+        if ls shared/*.go >/dev/null 2>&1 || find shared -name "*.go" -type f | head -1 | grep -q .; then
+          echo "Running golangci-lint for shared..."
+          cd shared && golangci-lint run --timeout=5m
+        fi
+        if ls dj/*.go >/dev/null 2>&1 || find dj -name "*.go" -type f | head -1 | grep -q .; then
+          echo "Running golangci-lint for dj..."
+          cd dj && golangci-lint run --timeout=5m
+        fi
+    
+    gomod-transmitter:
       glob: "transmitter/go.{mod,sum}"
       run: cd transmitter && go mod tidy
+      stage_fixed: true
+    
+    gomod-shared:
+      glob: "shared/go.{mod,sum}"
+      run: cd shared && go mod tidy
+      stage_fixed: true
+    
+    gomod-dj:
+      glob: "dj/go.{mod,sum}"
+      run: cd dj && go mod tidy
       stage_fixed: true
 
 pre-push:
   parallel: true
   commands:
-    tests:
+    tests-transmitter:
       run: cd transmitter && go test -v -race ./...
     
-    build:
+    tests-shared:
+      run: cd shared && go test -v -race ./...
+    
+    tests-dj:
+      run: cd dj && go test -v -race ./...
+    
+    build-transmitter:
       run: cd transmitter && go build -v ./...
     
-    security:
+    build-shared:
+      run: cd shared && go build -v ./...
+    
+    build-dj:
+      run: cd dj && go build -v ./...
+    
+    security-transmitter:
       run: cd transmitter && gosec ./...
     
-    verify-deps:
+    security-shared:
+      run: cd shared && gosec ./...
+    
+    security-dj:
+      run: cd dj && gosec ./...
+    
+    verify-deps-transmitter:
       run: cd transmitter && go mod verify
+    
+    verify-deps-shared:
+      run: cd shared && go mod verify
+    
+    verify-deps-dj:
+      run: cd dj && go mod verify

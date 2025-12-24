@@ -7,8 +7,9 @@ import (
 	"strings"
 
 	"github.com/dhowden/tag"
+	"github.com/google/uuid"
+	"github.com/vlady-kotsev/lime-radio/shared/domain"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/domain"
 	songrepository "github.com/vlady-kotsev/lime-radio/transmitter/internal/repository/song"
 	"go.uber.org/fx"
 )
@@ -72,7 +73,7 @@ func (pl *Playlist) UpdateSongs() error {
 			artist = "Unknown"
 		}
 
-		songs = append(songs, domain.NewSong(artist, title, filePath))
+		songs = append(songs, domain.NewSong(uuid.New().String(), artist, title, filePath))
 	}
 
 	return pl.songRepo.UpdateSongs(songs)

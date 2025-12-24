@@ -9,17 +9,7 @@ func ProvideHandlers() fx.Option {
 	return fx.Options(
 		fx.Provide(
 			fx.Annotate(
-				NewStreamHandler,
-				fx.As(new(handler.Handlerer)),
-				fx.ResultTags(`group:"handlers"`),
-			),
-			fx.Annotate(
-				NewGetAllSongsHandler,
-				fx.As(new(handler.Handlerer)),
-				fx.ResultTags(`group:"handlers"`),
-			),
-			fx.Annotate(
-				NewUpdateSongsHandler,
+				NewRequestSongHandler,
 				fx.As(new(handler.Handlerer)),
 				fx.ResultTags(`group:"handlers"`),
 			),

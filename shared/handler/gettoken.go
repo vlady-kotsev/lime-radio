@@ -5,21 +5,23 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/service/auth"
+
+	"github.com/vlady-kotsev/lime-radio/shared/config"
+	"github.com/vlady-kotsev/lime-radio/shared/handler/viewmodel"
+	"github.com/vlady-kotsev/lime-radio/shared/service/auth"
 	"go.uber.org/zap"
 )
 
 type GetTokenHandler struct {
 	logger     *zap.Logger
 	jwtService auth.JWTServicer
-	config     *config.Config
+	config     config.AuthConfiger
 	path       string
 }
 
 var _ Handlerer = (*GetTokenHandler)(nil)
 
-func NewGetTokenHandler(logger *zap.Logger, jwtService auth.JWTServicer, config *config.Config) *GetTokenHandler {
+func NewGetTokenHandler(logger *zap.Logger, jwtService auth.JWTServicer, config config.AuthConfiger) *GetTokenHandler {
 	return &GetTokenHandler{
 		logger:     logger,
 		jwtService: jwtService,
@@ -36,8 +38,9 @@ func (gt *GetTokenHandler) Handle(c *fiber.Ctx) error {
 			"error": "Missing Origin header",
 		})
 	}
+	gt.logger.Info("Hehe", zap.String("origin", origin))
 
-	if !slices.Contains(gt.config.Auth.AllowedOrigins, origin) {
+	if !slices.Contains(gt.config.GetAllowedOrigins(), origin) {
 		gt.logger.Warn("Unauthorized origin", zap.String("origin", origin))
 		return c.Status(401).JSON(fiber.Map{
 			"error": "Unauthorized origin",
@@ -45,7 +48,7 @@ func (gt *GetTokenHandler) Handle(c *fiber.Ctx) error {
 
 	}
 
-	expiration := time.Duration(gt.config.Auth.TokenExpirationMinutes) * time.Minute
+	expiration := time.Duration(gt.config.GetTokenExpirationMinutes()) * time.Minute
 	token, err := gt.jwtService.GenerateToken(expiration)
 	if err != nil {
 		gt.logger.Error("Failed to generate token", zap.Error(err))
@@ -66,11 +69,7 @@ func (gt *GetTokenHandler) Handle(c *fiber.Ctx) error {
 		SameSite: "Lax",
 	})
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"expires": expiresAt.Unix(),
-		"token":   token,
-	})
+	return c.JSON(viewmodel.ToTokenViewModel(true, expiresAt.Unix(), token))
 }
 
 func (h *GetTokenHandler) RegisterRoute(app *fiber.App) {

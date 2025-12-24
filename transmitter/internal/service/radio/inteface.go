@@ -1,6 +1,6 @@
 package radio
 
-import "github.com/vlady-kotsev/lime-radio/transmitter/internal/domain"
+import "github.com/vlady-kotsev/lime-radio/shared/domain"
 
 type Radioer interface {
 	AddClient() chan []byte
