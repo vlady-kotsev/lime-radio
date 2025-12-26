@@ -8,8 +8,22 @@ import (
 	"github.com/vlady-kotsev/lime-radio/shared/service/auth"
 )
 
-// JWTAuth creates middleware that validates JWT tokens
-func JWTAuth(jwtService auth.JWTServicer) fiber.Handler {
+const (
+	CookieKey  string = "auth_token"
+	QueryKey   string = "token"
+	AuthHeader string = "Authorization"
+	AuthPrefix string = "Bearer"
+)
+
+type AuthMiddleware struct {
+	jwtService auth.JWTServicer
+}
+
+func NewAuthMiddleware(jwtService auth.JWTServicer) *AuthMiddleware {
+	return &AuthMiddleware{jwtService: jwtService}
+}
+
+func (am *AuthMiddleware) ImposeAuth() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if c.Method() == "OPTIONS" {
 			return c.Next()
@@ -21,12 +35,12 @@ func JWTAuth(jwtService auth.JWTServicer) fiber.Handler {
 
 		var tokenString string
 
-		tokenString = c.Cookies("auth_token")
+		tokenString = c.Cookies(CookieKey)
 		if tokenString == "" {
-			authHeader := c.Get("Authorization")
+			authHeader := c.Get(AuthHeader)
 			if authHeader != "" {
 				parts := strings.Split(authHeader, " ")
-				if len(parts) != 2 || parts[0] != "Bearer" {
+				if len(parts) != 2 || parts[0] != AuthPrefix {
 					return c.Status(401).JSON(fiber.Map{
 						"error": "Invalid authorization header format",
 					})
@@ -36,7 +50,7 @@ func JWTAuth(jwtService auth.JWTServicer) fiber.Handler {
 		}
 
 		if tokenString == "" {
-			tokenString = c.Query("token")
+			tokenString = c.Query(QueryKey)
 		}
 
 		if tokenString == "" {
@@ -45,11 +59,11 @@ func JWTAuth(jwtService auth.JWTServicer) fiber.Handler {
 			})
 		}
 
-		claims, err := jwtService.ValidateToken(tokenString)
+		claims, err := am.jwtService.ValidateToken(tokenString)
 		if err != nil {
-			if c.Cookies("auth_token") != "" {
+			if c.Cookies(CookieKey) != "" {
 				c.Cookie(&fiber.Cookie{
-					Name:     "auth_token",
+					Name:     CookieKey,
 					Value:    "",
 					Expires:  time.Now().Add(-time.Hour),
 					HTTPOnly: true,

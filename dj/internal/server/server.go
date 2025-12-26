@@ -8,8 +8,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 
-	"github.com/vlady-kotsev/lime-radio/dj/internal/config"
-	"github.com/vlady-kotsev/lime-radio/shared/middleware"
+	"github.com/vlady-kotsev/lime-radio/dj/internal/middleware"
+	"github.com/vlady-kotsev/lime-radio/dj/internal/service/payment"
+	"github.com/vlady-kotsev/lime-radio/dj/internal/service/transaction"
+	"github.com/vlady-kotsev/lime-radio/shared/config"
+	sharedmiddleware "github.com/vlady-kotsev/lime-radio/shared/middleware"
 	"github.com/vlady-kotsev/lime-radio/shared/server"
 	"github.com/vlady-kotsev/lime-radio/shared/service/auth"
 	"go.uber.org/fx"
@@ -24,12 +27,12 @@ type Server struct {
 
 var _ server.Serverer = (*Server)(nil)
 
-func NewServer(lc fx.Lifecycle, logger *zap.Logger, auth auth.JWTServicer, config *config.Config) *Server {
+func NewServer(lc fx.Lifecycle, logger *zap.Logger, auth auth.JWTServicer, config config.Configer, paymentService payment.PaymentServicer, transactionService transaction.TransactionServicer) *Server {
 	app := fiber.New()
 
 	allowedOrigins := "*"
-	if len(config.Auth.AllowedOrigins) > 0 {
-		allowedOrigins = strings.Join(config.Auth.AllowedOrigins, ",")
+	if len(config.GetAllowedOrigins()) > 0 {
+		allowedOrigins = strings.Join(config.GetAllowedOrigins(), ",")
 	}
 
 	app.Use(cors.New(cors.Config{
@@ -41,12 +44,12 @@ func NewServer(lc fx.Lifecycle, logger *zap.Logger, auth auth.JWTServicer, confi
 		MaxAge:           86400,
 	}))
 
-	app.Use(middleware.JWTAuth(auth))
-
+	app.Use(sharedmiddleware.NewAuthMiddleware(auth).ImposeAuth())
+	app.Use(middleware.NewPaymentMiddleware(paymentService, transactionService).ImposePayment())
 	s := &Server{
 		fiber:  app,
 		logger: logger,
-		port:   fmt.Sprintf(":%d", config.App.Port),
+		port:   fmt.Sprintf(":%d", config.GetPort()),
 	}
 	lc.Append(
 		fx.Hook{

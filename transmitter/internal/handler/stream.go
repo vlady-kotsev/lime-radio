@@ -10,14 +10,14 @@ import (
 )
 
 type StreamHandler struct {
-	radio  radio.Radioer
+	radio  radio.RadioServicer
 	logger *zap.Logger
 	path   string
 }
 
 var _ handler.Handlerer = (*StreamHandler)(nil)
 
-func NewStreamHandler(radio radio.Radioer, logger *zap.Logger) *StreamHandler {
+func NewStreamHandler(radio radio.RadioServicer, logger *zap.Logger) *StreamHandler {
 	return &StreamHandler{
 		radio:  radio,
 		logger: logger,

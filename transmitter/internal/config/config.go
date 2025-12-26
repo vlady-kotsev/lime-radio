@@ -4,26 +4,33 @@ import (
 	"fmt"
 
 	"github.com/vlady-kotsev/lime-radio/shared/config"
+	sharedconfig "github.com/vlady-kotsev/lime-radio/shared/config"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App  AppConfig  `mapstructure:"app"`
-	Auth AuthConfig `mapstructure:"auth"`
+	App   AppConfig   `mapstructure:"app"`
+	Auth  AuthConfig  `mapstructure:"auth"`
+	Radio RadioConfig `mapstructure:"radio"`
 }
 
-var _ config.AuthConfiger = (*Config)(nil)
+var _ sharedconfig.AuthConfiger = (*Config)(nil)
+var _ sharedconfig.AppConfiger = (*Config)(nil)
+var _ RadioConfiger = (*Config)(nil)
 
 type AppConfig struct {
-	Port        uint32 `mapstructure:"port"`
-	SongsFolder string `mapstructure:"songs_folder"`
+	Port uint32 `mapstructure:"port"`
 }
 
 type AuthConfig struct {
 	SharedSecret           config.Secret `mapstructure:"shared_secret"`
 	AllowedOrigins         []string      `mapstructure:"allowed_origins"`
 	TokenExpirationMinutes int64         `mapstructure:"expiration_minutes"`
+}
+
+type RadioConfig struct {
+	SongsFolder string `mapstructure:"songs_folder"`
 }
 
 func Load() (*Config, error) {
@@ -49,6 +56,18 @@ func (c *Config) GetTokenExpirationMinutes() int64 {
 	return c.Auth.TokenExpirationMinutes
 }
 
+func (c *Config) GetSecretBytes() []byte {
+	return c.Auth.SharedSecret.Bytes()
+}
+
 func (c *Config) GetAllowedOrigins() []string {
 	return c.Auth.AllowedOrigins
+}
+
+func (c *Config) GetPort() uint32 {
+	return c.App.Port
+}
+
+func (c *Config) GetSongFolder() string {
+	return c.Radio.SongsFolder
 }

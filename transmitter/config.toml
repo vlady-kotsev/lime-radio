@@ -1,8 +1,0 @@
-[app]
-port = 8080
-songs_folder = "songs"
-
-[auth]
-shared_secret = "super-secret-value"
-allowed_origins = ["http://localhost:5173"]
-expiration_minutes = 1

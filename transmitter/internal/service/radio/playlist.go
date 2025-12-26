@@ -19,12 +19,12 @@ type Playlist struct {
 	songRepo    songrepository.SongRepositorer
 }
 
-var _ Playlister = (*Playlist)(nil)
+var _ PlaylistServicer = (*Playlist)(nil)
 
-func NewPlaylist(lc fx.Lifecycle, songRepo songrepository.SongRepositorer, config *config.Config) *Playlist {
+func NewPlaylist(lc fx.Lifecycle, songRepo songrepository.SongRepositorer, config config.RadioConfiger) *Playlist {
 
 	pl := Playlist{
-		songsFolder: config.App.SongsFolder,
+		songsFolder: config.GetSongFolder(),
 		songRepo:    songRepo,
 	}
 

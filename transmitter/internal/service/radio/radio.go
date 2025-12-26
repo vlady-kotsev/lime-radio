@@ -12,30 +12,27 @@ import (
 
 	"github.com/hajimehoshi/go-mp3"
 	"github.com/vlady-kotsev/lime-radio/shared/domain"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
 
 type Radio struct {
-	config     *config.Config
 	clients    map[chan []byte]bool
 	mutex      sync.RWMutex
 	sampleRate int
 	logger     *zap.Logger
 	songs      []*domain.Song
-	pl         Playlister
+	pl         PlaylistServicer
 }
 
-var _ Radioer = (*Radio)(nil)
+var _ RadioServicer = (*Radio)(nil)
 
-func NewRadio(lc fx.Lifecycle, logger *zap.Logger, pl Playlister, config *config.Config) (*Radio, error) {
+func NewRadio(lc fx.Lifecycle, logger *zap.Logger, pl PlaylistServicer) (*Radio, error) {
 	songs, err := pl.GetAllSongs()
 	if err != nil {
 		return nil, err
 	}
 	r := &Radio{
-		config:  config,
 		clients: make(map[chan []byte]bool),
 		logger:  logger,
 		songs:   songs,

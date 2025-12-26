@@ -9,14 +9,14 @@ import (
 )
 
 type GetAllSongsHandler struct {
-	radio  radio.Radioer
+	radio  radio.RadioServicer
 	logger *zap.Logger
 	path   string
 }
 
 var _ handler.Handlerer = (*GetAllSongsHandler)(nil)
 
-func NewGetAllSongsHandler(radio radio.Radioer, logger *zap.Logger) *GetAllSongsHandler {
+func NewGetAllSongsHandler(radio radio.RadioServicer, logger *zap.Logger) *GetAllSongsHandler {
 	return &GetAllSongsHandler{
 		radio:  radio,
 		logger: logger,

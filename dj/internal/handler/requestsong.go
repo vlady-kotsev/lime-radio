@@ -3,7 +3,7 @@ package handler
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/vlady-kotsev/lime-radio/dj/internal/config"
+	"github.com/vlady-kotsev/lime-radio/shared/config"
 	"github.com/vlady-kotsev/lime-radio/shared/handler"
 	"github.com/vlady-kotsev/lime-radio/shared/service/auth"
 	"go.uber.org/zap"
@@ -12,13 +12,13 @@ import (
 type RequestSongHandler struct {
 	logger     *zap.Logger
 	jwtService auth.JWTServicer
-	config     *config.Config
+	config     config.Configer
 	path       string
 }
 
 var _ handler.Handlerer = (*RequestSongHandler)(nil)
 
-func NewRequestSongHandler(logger *zap.Logger, jwtService auth.JWTServicer, config *config.Config) *RequestSongHandler {
+func NewRequestSongHandler(logger *zap.Logger, jwtService auth.JWTServicer, config config.Configer) *RequestSongHandler {
 	return &RequestSongHandler{
 		logger:     logger,
 		jwtService: jwtService,
@@ -28,7 +28,7 @@ func NewRequestSongHandler(logger *zap.Logger, jwtService auth.JWTServicer, conf
 }
 
 func (gt *RequestSongHandler) Handle(c *fiber.Ctx) error {
-	c.Status(402)
+	// TODO Send command here
 	return nil
 }
 

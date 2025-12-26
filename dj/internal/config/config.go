@@ -9,11 +9,14 @@ import (
 )
 
 type Config struct {
-	App  AppConfig  `mapstructure:"app"`
-	Auth AuthConfig `mapstructure:"auth"`
+	App     AppConfig     `mapstructure:"app"`
+	Auth    AuthConfig    `mapstructure:"auth"`
+	Payment PaymentConfig `mapstructure:"payment"`
 }
 
 var _ config.AuthConfiger = (*Config)(nil)
+var _ config.AppConfiger = (*Config)(nil)
+var _ PaymentConfiger = (*Config)(nil)
 
 type AppConfig struct {
 	Port uint32 `mapstructure:"port"`
@@ -23,6 +26,12 @@ type AuthConfig struct {
 	SharedSecret           config.Secret `mapstructure:"shared_secret"`
 	AllowedOrigins         []string      `mapstructure:"allowed_origins"`
 	TokenExpirationMinutes int64         `mapstructure:"expiration_minutes"`
+}
+
+type PaymentConfig struct {
+	Network         string `mapstructure:"network"`
+	ReceiverAddress string `mapstructure:"receiver_address"`
+	AmountLamports  uint64 `mapstructure:"amount_lamports"`
 }
 
 func Load() (*Config, error) {
@@ -50,4 +59,23 @@ func (c *Config) GetTokenExpirationMinutes() int64 {
 
 func (c *Config) GetAllowedOrigins() []string {
 	return c.Auth.AllowedOrigins
+}
+
+func (c *Config) GetSecretBytes() []byte {
+	return c.Auth.SharedSecret.Bytes()
+}
+
+func (c *Config) GetPort() uint32 {
+	return c.App.Port
+}
+
+func (c *Config) GetNetwork() string {
+	return c.Payment.Network
+}
+
+func (c *Config) GetReceiverAddress() string {
+	return c.Payment.ReceiverAddress
+}
+func (c *Config) GetAmountLamports() uint64 {
+	return c.Payment.AmountLamports
 }

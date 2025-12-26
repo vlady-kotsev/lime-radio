@@ -2,7 +2,7 @@ package radio
 
 import "github.com/vlady-kotsev/lime-radio/shared/domain"
 
-type Radioer interface {
+type RadioServicer interface {
 	AddClient() chan []byte
 	RemoveClient(client chan []byte)
 	GetSampleRate() int
@@ -10,7 +10,7 @@ type Radioer interface {
 	GetAllSongs() ([]*domain.Song, error)
 }
 
-type Playlister interface {
+type PlaylistServicer interface {
 	UpdateSongs() error
 	GetAllSongs() ([]*domain.Song, error)
 }

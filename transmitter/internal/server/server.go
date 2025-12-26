@@ -7,10 +7,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/vlady-kotsev/lime-radio/shared/config"
 	"github.com/vlady-kotsev/lime-radio/shared/middleware"
 	"github.com/vlady-kotsev/lime-radio/shared/server"
 	"github.com/vlady-kotsev/lime-radio/shared/service/auth"
-	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/repository"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -25,12 +25,12 @@ type Server struct {
 
 var _ server.Serverer = (*Server)(nil)
 
-func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage repository.Storager, auth auth.JWTServicer, config *config.Config) *Server {
+func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage repository.Storager, auth auth.JWTServicer, config config.Configer) *Server {
 	app := fiber.New()
 
 	allowedOrigins := "*"
-	if len(config.Auth.AllowedOrigins) > 0 {
-		allowedOrigins = strings.Join(config.Auth.AllowedOrigins, ",")
+	if len(config.GetAllowedOrigins()) > 0 {
+		allowedOrigins = strings.Join(config.GetAllowedOrigins(), ",")
 	}
 
 	app.Use(cors.New(cors.Config{
@@ -42,12 +42,12 @@ func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage repository.Storager,
 		MaxAge:           86400,
 	}))
 
-	app.Use(middleware.JWTAuth(auth))
+	app.Use(middleware.NewAuthMiddleware(auth).ImposeAuth())
 
 	s := &Server{
 		fiber:   app,
 		logger:  logger,
-		port:    fmt.Sprintf(":%d", config.App.Port),
+		port:    fmt.Sprintf(":%d", config.GetPort()),
 		storage: storage,
 	}
 	lc.Append(

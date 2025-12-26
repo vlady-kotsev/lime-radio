@@ -12,6 +12,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const CookieKey string = "auth_token"
+
 type GetTokenHandler struct {
 	logger     *zap.Logger
 	jwtService auth.JWTServicer
@@ -38,7 +40,6 @@ func (gt *GetTokenHandler) Handle(c *fiber.Ctx) error {
 			"error": "Missing Origin header",
 		})
 	}
-	gt.logger.Info("Hehe", zap.String("origin", origin))
 
 	if !slices.Contains(gt.config.GetAllowedOrigins(), origin) {
 		gt.logger.Warn("Unauthorized origin", zap.String("origin", origin))
@@ -61,7 +62,7 @@ func (gt *GetTokenHandler) Handle(c *fiber.Ctx) error {
 	gt.logger.Info("Token generated", zap.String("origin", origin), zap.Time("expires", expiresAt))
 
 	c.Cookie(&fiber.Cookie{
-		Name:     "auth_token",
+		Name:     CookieKey,
 		Value:    token,
 		Expires:  expiresAt,
 		HTTPOnly: true,

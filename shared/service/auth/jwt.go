@@ -14,12 +14,13 @@ type JWTService struct {
 
 var _ JWTServicer = (*JWTService)(nil)
 
-func NewJWTService(sharedSecret config.Secret) (*JWTService, error) {
-	if sharedSecret.IsEmpty() {
+func NewJWTService(config config.AuthConfiger) (*JWTService, error) {
+	secretBytes := config.GetSecretBytes()
+	if len(secretBytes) == 0 {
 		return nil, fmt.Errorf("jwt secret not configured")
 	}
 	return &JWTService{
-		secret: sharedSecret.Bytes(),
+		secret: secretBytes,
 	}, nil
 }
 
