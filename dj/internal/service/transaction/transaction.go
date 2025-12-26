@@ -78,9 +78,9 @@ func (ts *TransactionService) validatePaymentDetails(txResult *rpc.GetTransactio
 				continue
 			}
 
-			balanceChange := int64(postBalance) - int64(txResult.Meta.PreBalances[i])
+			balanceChange := postBalance - txResult.Meta.PreBalances[i]
 
-			if balanceChange >= int64(expectedAmount) {
+			if balanceChange >= expectedAmount {
 				if i < len(tx.Message.AccountKeys) && tx.Message.AccountKeys[i].Equals(receiverPubkey) {
 
 					return true
