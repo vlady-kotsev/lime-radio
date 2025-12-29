@@ -32,9 +32,8 @@ func (pr *PaymentRequest) ToBase64() (string, error) {
 }
 
 type PaymentResponse struct {
-	Network     string `json:"network"`
-	TxHash      string `json:"transaction_hash"`
-	Description string `json:"description,omitempty"`
+	Network string `json:"network"`
+	TxHash  string `json:"transaction_hash"`
 }
 
 func PaymentResponseFromBase64(encodedPaymentRequest string) (*PaymentResponse, error) {

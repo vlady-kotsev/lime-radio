@@ -40,9 +40,9 @@ func NewServer(lc fx.Lifecycle, logger *zap.Logger, auth auth.JWTServicer, confi
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
-		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization,Payment",
 		AllowCredentials: allowCredentials,
-		ExposeHeaders:    "Content-Length,Content-Range",
+		ExposeHeaders:    "Content-Length,Content-Range,Payment-Required",
 		MaxAge:           86400,
 	}))
 

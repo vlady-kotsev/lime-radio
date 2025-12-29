@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/gofiber/fiber/v2"
 
+	"github.com/vlady-kotsev/lime-radio/dj/internal/domain"
 	"github.com/vlady-kotsev/lime-radio/shared/config"
 	"github.com/vlady-kotsev/lime-radio/shared/handler"
 	"github.com/vlady-kotsev/lime-radio/shared/service/auth"
@@ -28,10 +29,14 @@ func NewRequestSongHandler(logger *zap.Logger, jwtService auth.JWTServicer, conf
 }
 
 func (gt *RequestSongHandler) Handle(c *fiber.Ctx) error {
-	// TODO Send command here
+	var songRequest domain.SongRequest
+	if err := c.BodyParser(&songRequest); err == nil {
+		// TODO Send SongRequested event
+	}
+
 	return nil
 }
 
 func (h *RequestSongHandler) RegisterRoute(app *fiber.App) {
-	app.Get(h.path, h.Handle)
+	app.Post(h.path, h.Handle)
 }

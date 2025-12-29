@@ -19,7 +19,8 @@ type PaymentMiddleware struct {
 
 func NewPaymentMiddleware(paymentService payment.PaymentServicer, transactionService transaction.TransactionServicer) *PaymentMiddleware {
 	return &PaymentMiddleware{
-		paymentService: paymentService,
+		paymentService:     paymentService,
+		transactionService: transactionService,
 	}
 }
 
