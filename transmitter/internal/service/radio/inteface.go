@@ -1,10 +1,13 @@
 package radio
 
-import "github.com/vlady-kotsev/lime-radio/shared/domain"
+import (
+	"github.com/google/uuid"
+	"github.com/vlady-kotsev/lime-radio/shared/domain"
+)
 
 type RadioServicer interface {
-	AddClient() chan []byte
-	RemoveClient(client chan []byte)
+	AddClient() *Connection
+	RemoveClient(connectionID uuid.UUID)
 	GetSampleRate() int
 	UpdateSongs() error
 	GetAllSongs() ([]*domain.Song, error)

@@ -1,42 +1,52 @@
 package radio
 
 import (
+	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hajimehoshi/go-mp3"
 	"github.com/vlady-kotsev/lime-radio/shared/domain"
+	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
+)
+
+const (
+	SongQueueLength        int = 10
+	BroadcastChannelLength int = 10_000
+	ChunkSize              int = 1024
 )
 
 type Radio struct {
-	clients    map[chan []byte]bool
-	mutex      sync.RWMutex
-	sampleRate int
-	logger     *zap.Logger
-	songs      []*domain.Song
-	pl         PlaylistServicer
+	logger                *zap.Logger
+	config                config.RadioConfiger
+	pl                    PlaylistServicer
+	connections           map[uuid.UUID]*Connection
+	lock                  sync.RWMutex
+	currentSongSampleRate int
+	songQueue             chan *domain.Song
+	broadcastChan         chan []byte
+	group                 *errgroup.Group
 }
 
 var _ RadioServicer = (*Radio)(nil)
 
-func NewRadio(lc fx.Lifecycle, logger *zap.Logger, pl PlaylistServicer) (*Radio, error) {
-	songs, err := pl.GetAllSongs()
-	if err != nil {
-		return nil, err
-	}
-	r := &Radio{
-		clients: make(map[chan []byte]bool),
-		logger:  logger,
-		songs:   songs,
-		pl:      pl,
+func NewRadio(lc fx.Lifecycle, logger *zap.Logger, config config.RadioConfiger, pl PlaylistServicer) *Radio {
+	r := Radio{
+		logger:        logger,
+		config:        config,
+		pl:            pl,
+		lock:          sync.RWMutex{},
+		connections:   make(map[uuid.UUID]*Connection),
+		songQueue:     make(chan *domain.Song, SongQueueLength),
+		broadcastChan: make(chan []byte, BroadcastChannelLength),
+		group:         &errgroup.Group{},
 	}
 
 	lc.Append(fx.Hook{
@@ -48,122 +58,97 @@ func NewRadio(lc fx.Lifecycle, logger *zap.Logger, pl PlaylistServicer) (*Radio,
 			}()
 			return nil
 		},
+		OnStop: func(_ context.Context) error {
+			for _, conn := range r.connections {
+				r.RemoveClient(conn.ID)
+			}
+			close(r.broadcastChan)
+			return r.group.Wait()
+		},
 	})
 
-	return r, nil
+	return &r
 }
 
-func (r *Radio) AddClient() chan []byte {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	client := make(chan []byte, 10240)
-	r.clients[client] = true
-	r.logger.Info("Client connected", zap.Int("total_clients", len(r.clients)))
-	return client
+func (r *Radio) AddClient() *Connection {
+	newConnection := NewConnection(r.broadcastChan)
+	r.lock.Lock()
+	r.connections[newConnection.ID] = newConnection
+	r.lock.Unlock()
+	r.group.Go(newConnection.ConnectionLoop)
+	return newConnection
 }
 
-func (r *Radio) RemoveClient(client chan []byte) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if _, exists := r.clients[client]; exists {
-		delete(r.clients, client)
-		close(client)
-		r.logger.Info("Client disconnected", zap.Int("total_clients", len(r.clients)))
-	}
-}
-
-func (r *Radio) GetSampleRate() int {
-	return r.sampleRate
-}
-
-func (r *Radio) UpdateSongs() error {
-	err := r.pl.UpdateSongs()
-	if err != nil {
-		return err
-	}
-	songs, err := r.pl.GetAllSongs()
-	if err != nil {
-		return err
-	}
-
-	r.songs = songs
-	return nil
+func (r *Radio) RemoveClient(ID uuid.UUID) {
+	r.lock.Lock()
+	conn := r.connections[ID]
+	close(conn.DoneChan)
+	delete(r.connections, ID)
+	r.lock.Unlock()
 }
 
 func (r *Radio) GetAllSongs() ([]*domain.Song, error) {
 	return r.pl.GetAllSongs()
 }
 
-func (r *Radio) broadcast(data []byte) {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
+func (r *Radio) UpdateSongs() error {
+	return r.pl.UpdateSongs()
+}
 
-	dataCopy := make([]byte, len(data))
-	copy(dataCopy, data)
-
-	for client := range r.clients {
-		select {
-		case client <- dataCopy:
-		default:
-			// drop packets
-		}
-	}
+func (r *Radio) GetSampleRate() int {
+	return r.currentSongSampleRate
 }
 
 func (r *Radio) startBroadcast() error {
-
-	if len(r.songs) == 0 {
-		return fmt.Errorf("no mp3 files found in songs directory")
+	songs, err := r.pl.GetAllSongs()
+	if err != nil {
+		return err
 	}
-
+	// playback loop
 	for {
-		for _, song := range r.songs {
-			func() {
-				songName := filepath.Base(song.Path)
-				songName = strings.TrimSuffix(songName, ".mp3")
-				r.logger.Info("Now playing", zap.String("song", songName))
+		for _, song := range songs {
+			f, err := os.Open(song.Path)
+			if err != nil {
+				r.logger.Error("Error opening song", zap.String("path", song.Path), zap.Error(err))
+				continue
+			}
+			defer f.Close()
 
-				f, err := os.Open(song.Path)
+			data, err := io.ReadAll(f)
+			if err != nil {
+				r.logger.Error("Error reading song file", zap.String("path", song.Path), zap.Error(err))
+				continue
+			}
+
+			reader := bytes.NewReader(data)
+			decoder, err := mp3.NewDecoder(reader)
+			if err != nil {
+				r.logger.Error("Error creating decoder", zap.String("path", song.Path), zap.Error(err))
+				continue
+			}
+			r.currentSongSampleRate = decoder.SampleRate()
+
+			buf := make([]byte, ChunkSize)
+			for {
+				bytesRead, err := decoder.Read(buf)
+				if err == io.EOF {
+					break
+				}
 				if err != nil {
-					r.logger.Error("Error opening song", zap.String("path", song.Path), zap.Error(err))
-					return
-				}
-				defer func() {
-					if err := f.Close(); err != nil {
-						r.logger.Error("Error closing file", zap.String("path", song.Path), zap.Error(err))
-					}
-				}()
-
-				decoder, err := mp3.NewDecoder(f)
-				if err != nil {
-					r.logger.Error("Error creating decoder", zap.String("path", song.Path), zap.Error(err))
-					return
+					r.logger.Error("Error reading song data", zap.String("path", song.Path), zap.Error(err))
+					break
 				}
 
-				r.sampleRate = decoder.SampleRate()
+				if bytesRead > 0 {
+					dataCopy := make([]byte, bytesRead)
+					copy(dataCopy, buf[:bytesRead])
 
-				buf := make([]byte, 1024)
+					r.broadcastChan <- dataCopy
 
-				intervalMs := calculateStreamInterval(decoder.SampleRate())
-				ticker := time.NewTicker(time.Duration(intervalMs) * time.Millisecond)
-				defer ticker.Stop()
-
-				for range ticker.C {
-					n, err := decoder.Read(buf)
-					if err == io.EOF {
-						break
-					}
-					if err != nil {
-						r.logger.Error("Error reading song data", zap.String("path", song.Path), zap.Error(err))
-						break
-					}
-					if n > 0 {
-						r.broadcast(buf[:n])
-					}
+					waitTime := calculateStreamIntervalForBytes(decoder.SampleRate(), bytesRead)
+					time.Sleep(waitTime)
 				}
-			}()
+			}
 		}
 	}
 }

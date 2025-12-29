@@ -40,8 +40,8 @@ func (gt *GetTokenHandler) Handle(c *fiber.Ctx) error {
 			"error": "Missing Origin header",
 		})
 	}
-
-	if !slices.Contains(gt.config.GetAllowedOrigins(), origin) {
+	allowedOrigins := gt.config.GetAllowedOrigins()
+	if len(allowedOrigins) > 0 && !slices.Contains(allowedOrigins, origin) {
 		gt.logger.Warn("Unauthorized origin", zap.String("origin", origin))
 		return c.Status(401).JSON(fiber.Map{
 			"error": "Unauthorized origin",

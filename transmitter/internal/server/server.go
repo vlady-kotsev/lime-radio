@@ -29,15 +29,17 @@ func NewServer(lc fx.Lifecycle, logger *zap.Logger, storage repository.Storager,
 	app := fiber.New()
 
 	allowedOrigins := "*"
+	allowedCredentials := false
 	if len(config.GetAllowedOrigins()) > 0 {
 		allowedOrigins = strings.Join(config.GetAllowedOrigins(), ",")
+		allowedCredentials = true
 	}
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
 		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
-		AllowCredentials: true,
+		AllowCredentials: allowedCredentials,
 		ExposeHeaders:    "Content-Length,Content-Range",
 		MaxAge:           86400,
 	}))

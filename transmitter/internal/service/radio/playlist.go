@@ -14,16 +14,16 @@ import (
 	"go.uber.org/fx"
 )
 
-type Playlist struct {
+type PlaylistService struct {
 	songsFolder string
 	songRepo    songrepository.SongRepositorer
 }
 
-var _ PlaylistServicer = (*Playlist)(nil)
+var _ PlaylistServicer = (*PlaylistService)(nil)
 
-func NewPlaylist(lc fx.Lifecycle, songRepo songrepository.SongRepositorer, config config.RadioConfiger) *Playlist {
+func NewPlaylist(lc fx.Lifecycle, songRepo songrepository.SongRepositorer, config config.RadioConfiger) *PlaylistService {
 
-	pl := Playlist{
+	pl := PlaylistService{
 		songsFolder: config.GetSongFolder(),
 		songRepo:    songRepo,
 	}
@@ -36,7 +36,7 @@ func NewPlaylist(lc fx.Lifecycle, songRepo songrepository.SongRepositorer, confi
 	return &pl
 }
 
-func (pl *Playlist) UpdateSongs() error {
+func (pl *PlaylistService) UpdateSongs() error {
 	entries, err := os.ReadDir(pl.songsFolder)
 	if err != nil {
 		return err
@@ -60,17 +60,20 @@ func (pl *Playlist) UpdateSongs() error {
 		defer f.Close()
 
 		meta, err := tag.ReadFrom(f)
-		if err != nil {
-			return err
-		}
 
-		title := meta.Title()
-		if title == "" {
+		var title, artist string
+		if err != nil {
 			title, _ = strings.CutSuffix(e.Name(), ".mp3")
-		}
-		artist := meta.Artist()
-		if artist == "" {
 			artist = "Unknown"
+		} else {
+			title = meta.Title()
+			if title == "" {
+				title, _ = strings.CutSuffix(e.Name(), ".mp3")
+			}
+			artist = meta.Artist()
+			if artist == "" {
+				artist = "Unknown"
+			}
 		}
 
 		songs = append(songs, domain.NewSong(uuid.New().String(), artist, title, filePath))
@@ -79,7 +82,7 @@ func (pl *Playlist) UpdateSongs() error {
 	return pl.songRepo.UpdateSongs(songs)
 }
 
-func (pl *Playlist) GetAllSongs() ([]*domain.Song, error) {
+func (pl *PlaylistService) GetAllSongs() ([]*domain.Song, error) {
 	songDTOs, err := pl.songRepo.GetAllSongs()
 	if err != nil {
 		return []*domain.Song{}, nil

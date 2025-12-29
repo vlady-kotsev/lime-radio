@@ -14,6 +14,7 @@ require (
 	github.com/vlady-kotsev/lime-radio/shared v0.0.0
 	go.uber.org/fx v1.24.0
 	go.uber.org/zap v1.27.1
+	golang.org/x/sync v0.17.0
 	modernc.org/sqlite v1.40.1
 )
 

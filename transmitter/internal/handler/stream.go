@@ -27,19 +27,19 @@ func NewStreamHandler(radio radio.RadioServicer, logger *zap.Logger) *StreamHand
 
 func (h *StreamHandler) Handle(c *fiber.Ctx) error {
 	c.Set("Content-Type", "audio/wav")
-	c.Set("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0")
-	c.Set("Pragma", "no-cache")
-	c.Set("Expires", "0")
+	c.Set("Cache-Control", "public, max-age=3600")
 	c.Set("Connection", "keep-alive")
 	c.Set("Transfer-Encoding", "chunked")
+	c.Set("Accept-Ranges", "none")
 	c.Set("Access-Control-Allow-Origin", "*")
-	c.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	c.Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
-	c.Set("Access-Control-Expose-Headers", "Content-Length, Content-Range")
+	c.Set("Access-Control-Allow-Methods", "GET")
+	c.Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept")
 
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
-		client := h.radio.AddClient()
-		defer h.radio.RemoveClient(client)
+		connection := h.radio.AddClient()
+		defer h.radio.RemoveClient(connection.ID)
+
+		h.logger.Info("Client connected", zap.String("client_id", connection.ID.String()))
 
 		if h.radio.GetSampleRate() > 0 {
 			header, err := radio.CreateWAVHeader(h.radio.GetSampleRate())
@@ -58,14 +58,19 @@ func (h *StreamHandler) Handle(c *fiber.Ctx) error {
 			}
 		}
 
-		for data := range client {
+		for data := range connection.DataChan {
+
 			if _, err := w.Write(data); err != nil {
-				h.logger.Debug("Client disconnected", zap.Error(err))
+				h.logger.Debug("Client disconnected",
+					zap.String("client_id", connection.ID.String()),
+					zap.Error(err))
 				return
 			}
 			err := w.Flush()
 			if err != nil {
-				h.logger.Error("Error flushing data", zap.Error(err))
+				h.logger.Error("Error flushing data",
+					zap.String("client_id", connection.ID.String()),
+					zap.Error(err))
 				return
 			}
 		}
