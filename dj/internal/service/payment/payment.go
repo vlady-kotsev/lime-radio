@@ -17,11 +17,8 @@ func NewPaymentService(logger *zap.Logger, config config.PaymentConfiger) *Payme
 	return &PaymentService{logger: logger, config: config}
 }
 
-func (ps *PaymentService) ConstructPaymentPayload(description string) (string, error) {
-	paymentRequest := domain.NewPaymentRequest(ps.config.GetAmountLamports(), ps.config.GetNetwork(), ps.config.GetReceiverAddress(), description)
-	encodedPaymentRequest, err := paymentRequest.ToBase64()
-	if err != nil {
-		return "", err
-	}
-	return encodedPaymentRequest, nil
+func (ps *PaymentService) ConstructPaymentPayload() (string, error) {
+	paymentRequest := domain.NewPaymentRequest(ps.config.GetAmountLamports(), ps.config.GetNetwork(), ps.config.GetReceiverAddress())
+	return paymentRequest.ToBase64()
+
 }

@@ -10,14 +10,16 @@ import (
 )
 
 type Config struct {
-	App   AppConfig   `mapstructure:"app"`
-	Auth  AuthConfig  `mapstructure:"auth"`
-	Radio RadioConfig `mapstructure:"radio"`
+	App   AppConfig                `mapstructure:"app"`
+	Auth  AuthConfig               `mapstructure:"auth"`
+	Radio RadioConfig              `mapstructure:"radio"`
+	Event sharedconfig.EventConfig `mapstructure:"event"`
 }
 
 var _ sharedconfig.AuthConfiger = (*Config)(nil)
 var _ sharedconfig.AppConfiger = (*Config)(nil)
 var _ RadioConfiger = (*Config)(nil)
+var _ sharedconfig.EventConfiger = (*Config)(nil)
 
 type AppConfig struct {
 	Port uint32 `mapstructure:"port"`
@@ -70,4 +72,16 @@ func (c *Config) GetPort() uint32 {
 
 func (c *Config) GetSongFolder() string {
 	return c.Radio.SongsFolder
+}
+
+func (c *Config) GetBrokerUrl() string {
+	return c.Event.BrokerURL
+}
+
+func (c *Config) GetEventUsername() string {
+	return c.Event.Username
+}
+
+func (c *Config) GetEventPassword() string {
+	return string(c.Event.Password.Bytes())
 }

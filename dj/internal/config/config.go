@@ -9,14 +9,16 @@ import (
 )
 
 type Config struct {
-	App     AppConfig     `mapstructure:"app"`
-	Auth    AuthConfig    `mapstructure:"auth"`
-	Payment PaymentConfig `mapstructure:"payment"`
+	App     AppConfig          `mapstructure:"app"`
+	Auth    AuthConfig         `mapstructure:"auth"`
+	Payment PaymentConfig      `mapstructure:"payment"`
+	Event   config.EventConfig `mapstructure:"event"`
 }
 
 var _ config.AuthConfiger = (*Config)(nil)
 var _ config.AppConfiger = (*Config)(nil)
 var _ PaymentConfiger = (*Config)(nil)
+var _ config.EventConfiger = (*Config)(nil)
 
 type AppConfig struct {
 	Port uint32 `mapstructure:"port"`
@@ -76,6 +78,19 @@ func (c *Config) GetNetwork() string {
 func (c *Config) GetReceiverAddress() string {
 	return c.Payment.ReceiverAddress
 }
+
 func (c *Config) GetAmountLamports() uint64 {
 	return c.Payment.AmountLamports
+}
+
+func (c *Config) GetBrokerUrl() string {
+	return c.Event.BrokerURL
+}
+
+func (c *Config) GetEventUsername() string {
+	return c.Event.Username
+}
+
+func (c *Config) GetEventPassword() string {
+	return string(c.Event.Password.Bytes())
 }

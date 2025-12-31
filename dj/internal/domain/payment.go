@@ -9,15 +9,13 @@ type PaymentRequest struct {
 	Network        string `json:"network"`
 	PayTo          string `json:"payTo"`
 	AmountLamports uint64 `json:"amount_lamports"`
-	Description    string `json:"description,omitempty"`
 }
 
-func NewPaymentRequest(amountLamports uint64, network, payTo, description string) *PaymentRequest {
+func NewPaymentRequest(amountLamports uint64, network, payTo string) *PaymentRequest {
 	return &PaymentRequest{
 		AmountLamports: amountLamports,
 		Network:        network,
 		PayTo:          payTo,
-		Description:    description,
 	}
 }
 

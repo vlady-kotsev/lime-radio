@@ -10,6 +10,12 @@ type AppConfiger interface {
 	GetPort() uint32
 }
 
+type EventConfiger interface {
+	GetBrokerUrl() string
+	GetEventUsername() string
+	GetEventPassword() string
+}
+
 type Configer interface {
 	AuthConfiger
 	AppConfiger

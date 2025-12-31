@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/vlady-kotsev/lime-radio/dj/internal/client"
 	"github.com/vlady-kotsev/lime-radio/dj/internal/config"
+	"github.com/vlady-kotsev/lime-radio/dj/internal/events"
 	"github.com/vlady-kotsev/lime-radio/dj/internal/handler"
 	"github.com/vlady-kotsev/lime-radio/dj/internal/server"
 	"github.com/vlady-kotsev/lime-radio/dj/internal/service/payment"
@@ -25,11 +26,17 @@ func main() {
 		fx.Provide(
 			zap.NewProduction,
 			fx.Annotate(server.NewServer, fx.As(new(sharedserver.Serverer))),
-			fx.Annotate(config.Load, fx.As(new(sharedconfig.AuthConfiger)), fx.As(new(sharedconfig.Configer)), fx.As(new(config.PaymentConfiger))),
+			fx.Annotate(
+				config.Load,
+				fx.As(new(sharedconfig.AuthConfiger)),
+				fx.As(new(sharedconfig.Configer)),
+				fx.As(new(config.PaymentConfiger)),
+				fx.As(new(sharedconfig.EventConfiger))),
 			fx.Annotate(auth.NewJWTService, fx.As(new(auth.JWTServicer))),
 			fx.Annotate(payment.NewPaymentService, fx.As(new(payment.PaymentServicer))),
 			fx.Annotate(transaction.NewTransactionService, fx.As(new(transaction.TransactionServicer))),
 			fx.Annotate(client.NewSolanaClient, fx.As(new(client.SolanaClienter))),
+			fx.Annotate(events.NewPublisher, fx.As(new(events.EventPublisherer))),
 		),
 		handler.ProvideHandlers(),
 		fx.Invoke(

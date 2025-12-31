@@ -31,8 +31,7 @@ func (pm *PaymentMiddleware) ImposePayment() fiber.Handler {
 		}
 		paymentHeader := c.Get(PaymentResponseHeader)
 		if paymentHeader == "" {
-			description := ""
-			requestPayload, err := pm.paymentService.ConstructPaymentPayload(description)
+			requestPayload, err := pm.paymentService.ConstructPaymentPayload()
 			if err != nil {
 				return c.SendStatus(fiber.StatusInternalServerError)
 			}
