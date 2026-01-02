@@ -32,7 +32,8 @@ type AuthConfig struct {
 }
 
 type RadioConfig struct {
-	SongsFolder string `mapstructure:"songs_folder"`
+	SongsFolder   string `mapstructure:"songs_folder"`
+	QueueMaxCount int    `mapstructure:"queue_max_count"`
 }
 
 func Load() (*Config, error) {
@@ -84,4 +85,8 @@ func (c *Config) GetEventUsername() string {
 
 func (c *Config) GetEventPassword() string {
 	return string(c.Event.Password.Bytes())
+}
+
+func (c *Config) GetQueueMaxCount() int {
+	return c.Radio.QueueMaxCount
 }

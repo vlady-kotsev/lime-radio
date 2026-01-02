@@ -38,7 +38,7 @@ func (gt *RequestSongHandler) Handle(c *fiber.Ctx) error {
 		return err
 	}
 
-	err = gt.publisher.PublishMessage("Hello, World")
+	err = gt.publisher.PublishMessage(songRequest.ID.String())
 	if err != nil {
 		return err
 	}

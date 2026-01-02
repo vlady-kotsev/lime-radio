@@ -16,6 +16,8 @@ var (
 	getSongs string
 	//go:embed sql/deleteSong.sql
 	deleteSong string
+	//go:embed sql/getSongById.sql
+	getSongById string
 )
 
 type SongMapEntry struct {
@@ -72,6 +74,15 @@ func (sr *SongRepository) deleteSongs(tx *sqlx.Tx, dtos []*SongDTO) error {
 		}
 	}
 	return nil
+}
+
+func (sr *SongRepository) GetSongByID(ID uuid.UUID) (*SongDTO, error) {
+	var dto SongDTO
+	err := sr.storage.Get(&dto, getSongById, ID.String())
+	if err != nil {
+		return nil, err
+	}
+	return &dto, nil
 }
 
 func (sr *SongRepository) UpdateSongs(songs []*domain.Song) error {

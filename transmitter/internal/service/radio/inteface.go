@@ -16,4 +16,8 @@ type RadioServicer interface {
 type PlaylistServicer interface {
 	UpdateSongs() error
 	GetAllSongs() ([]*domain.Song, error)
+	GetAllSongsInQueue() []*domain.Song
+	EnqueueSong(songID uuid.UUID) error
+	DequeueSong() (*domain.Song, error)
+	GetQueueLength() int
 }

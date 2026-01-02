@@ -28,6 +28,16 @@ func ProvideHandlers() fx.Option {
 				fx.As(new(handler.Handlerer)),
 				fx.ResultTags(`group:"handlers"`),
 			),
+			fx.Annotate(
+				NewGetAllSongsInQueueHandler,
+				fx.As(new(handler.Handlerer)),
+				fx.ResultTags(`group:"handlers"`),
+			),
+			fx.Annotate(
+				NewQueueCountHandler,
+				fx.As(new(handler.Handlerer)),
+				fx.ResultTags(`group:"handlers"`),
+			),
 		),
 	)
 }

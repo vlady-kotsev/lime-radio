@@ -2,6 +2,7 @@ package radio
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,8 +16,10 @@ import (
 )
 
 type PlaylistService struct {
+	config      config.RadioConfiger
 	songsFolder string
 	songRepo    songrepository.SongRepositorer
+	songQueue   []*domain.Song
 }
 
 var _ PlaylistServicer = (*PlaylistService)(nil)
@@ -26,6 +29,8 @@ func NewPlaylist(lc fx.Lifecycle, songRepo songrepository.SongRepositorer, confi
 	pl := PlaylistService{
 		songsFolder: config.GetSongFolder(),
 		songRepo:    songRepo,
+		config:      config,
+		songQueue:   make([]*domain.Song, 0, config.GetQueueMaxCount()),
 	}
 
 	lc.Append(fx.Hook{
@@ -94,4 +99,32 @@ func (pl *PlaylistService) GetAllSongs() ([]*domain.Song, error) {
 	}
 
 	return songs, nil
+}
+
+func (pl *PlaylistService) EnqueueSong(songID uuid.UUID) error {
+	songDTO, err := pl.songRepo.GetSongByID(songID)
+	if err != nil {
+		return err
+	}
+
+	pl.songQueue = append(pl.songQueue, songDTO.ToDomain())
+	return nil
+}
+
+func (pl *PlaylistService) DequeueSong() (*domain.Song, error) {
+	if len(pl.songQueue) == 0 {
+		return nil, fmt.Errorf("queue is empty")
+	}
+	song := pl.songQueue[0]
+	pl.songQueue = pl.songQueue[1:]
+
+	return song, nil
+}
+
+func (pl *PlaylistService) GetQueueLength() int {
+	return len(pl.songQueue)
+}
+
+func (pl *PlaylistService) GetAllSongsInQueue() []*domain.Song {
+	return pl.songQueue
 }

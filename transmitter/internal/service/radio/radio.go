@@ -104,9 +104,19 @@ func (r *Radio) startBroadcast() error {
 	if err != nil {
 		return err
 	}
-	// playback loop
+	// Playback loop
 	for {
 		for _, song := range songs {
+			// Check if we have songs in queue
+			if r.pl.GetQueueLength() > 0 {
+				requestedSong, err := r.pl.DequeueSong()
+				if err != nil {
+					r.logger.Error("Error dequeueing song", zap.Error(err))
+				} else {
+					song = requestedSong
+				}
+			}
+
 			f, err := os.Open(song.Path)
 			if err != nil {
 				r.logger.Error("Error opening song", zap.String("path", song.Path), zap.Error(err))

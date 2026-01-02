@@ -6,9 +6,11 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/nats"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/google/uuid"
 	nc "github.com/nats-io/nats.go"
 	sharedconfig "github.com/vlady-kotsev/lime-radio/shared/config"
 	sharedevents "github.com/vlady-kotsev/lime-radio/shared/events"
+	"github.com/vlady-kotsev/lime-radio/transmitter/internal/service/radio"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -17,6 +19,7 @@ const RequestTopicName string = "request_topic"
 
 type EventSubscriber struct {
 	logger     *zap.Logger
+	pl         radio.PlaylistServicer
 	subscriber *nats.Subscriber
 	ctx        context.Context
 	cancel     context.CancelFunc
@@ -24,7 +27,7 @@ type EventSubscriber struct {
 
 var _ EventSubscriberer = (*EventSubscriber)(nil)
 
-func NewSubscriber(lc fx.Lifecycle, logger *zap.Logger, config sharedconfig.EventConfiger) (*EventSubscriber, error) {
+func NewSubscriber(lc fx.Lifecycle, logger *zap.Logger, config sharedconfig.EventConfiger, pl radio.PlaylistServicer) (*EventSubscriber, error) {
 	watermillLogger := sharedevents.NewZapLoggerAdapter(logger)
 
 	marshaler := &nats.GobMarshaler{}
@@ -69,6 +72,7 @@ func NewSubscriber(lc fx.Lifecycle, logger *zap.Logger, config sharedconfig.Even
 
 	es := &EventSubscriber{
 		logger:     logger,
+		pl:         pl,
 		subscriber: subscriber,
 		ctx:        ctx,
 		cancel:     cancel,
@@ -105,6 +109,14 @@ func (es *EventSubscriber) handleMessages(messages <-chan *message.Message) {
 			}
 			es.logger.Info("Received message", zap.String("payload", string(msg.Payload)), zap.String("uuid", msg.UUID))
 			msg.Ack()
+			songID, err := uuid.ParseBytes(msg.Payload)
+			if err != nil {
+				es.logger.Error("Invalid message payload", zap.String("payload", string(msg.Payload)))
+			}
+			err = es.pl.EnqueueSong(songID)
+			if err != nil {
+				es.logger.Error("Song request enqueue failed", zap.String("songID", songID.String()), zap.Error(err))
+			}
 		case <-es.ctx.Done():
 			return
 		}

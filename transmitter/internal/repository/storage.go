@@ -53,6 +53,10 @@ func (s *Storage) Select(dest any, query string, args ...any) error {
 	return s.DB.Select(dest, query, args...)
 }
 
+func (s *Storage) Get(dest any, query string, args ...any) error {
+	return s.DB.Get(dest, query, args...)
+}
+
 func openDB(path string) (*sqlx.DB, error) {
 	db, err := sqlx.Open("sqlite", path)
 	if err != nil {
