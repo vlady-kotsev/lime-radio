@@ -2,30 +2,40 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/vlady-kotsev/lime-radio/shared/domain"
 	"github.com/vlady-kotsev/lime-radio/shared/handler"
 	songviewmodel "github.com/vlady-kotsev/lime-radio/transmitter/internal/handler/viewmodel"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/service/radio"
 	"go.uber.org/zap"
 )
 
+const SearchQueryKey string = "search"
+
 type GetAllSongsHandler struct {
-	radio  radio.RadioServicer
+	pl     radio.PlaylistServicer
 	logger *zap.Logger
 	path   string
 }
 
 var _ handler.Handlerer = (*GetAllSongsHandler)(nil)
 
-func NewGetAllSongsHandler(radio radio.RadioServicer, logger *zap.Logger) *GetAllSongsHandler {
+func NewGetAllSongsHandler(pl radio.PlaylistServicer, logger *zap.Logger) *GetAllSongsHandler {
 	return &GetAllSongsHandler{
-		radio:  radio,
+		pl:     pl,
 		logger: logger,
 		path:   "/songs",
 	}
 }
 
 func (h *GetAllSongsHandler) Handle(c *fiber.Ctx) error {
-	songs, err := h.radio.GetAllSongs()
+	searchQuery := c.Query(SearchQueryKey)
+	var songs []*domain.Song
+	var err error
+	if searchQuery == "" {
+		songs, err = h.pl.GetAllSongs()
+	} else {
+		songs, err = h.pl.GetAllSongsByTitleOrArtist(searchQuery)
+	}
 	if err != nil {
 		h.logger.Error("Failed to get songs", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

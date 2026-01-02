@@ -9,4 +9,5 @@ type SongRepositorer interface {
 	UpdateSongs(songs []*domain.Song) error
 	GetAllSongs() ([]*SongDTO, error)
 	GetSongByID(ID uuid.UUID) (*SongDTO, error)
+	GetSongsByTitleOrArtist(keyword string) ([]*SongDTO, error)
 }

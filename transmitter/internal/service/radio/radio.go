@@ -87,14 +87,6 @@ func (r *Radio) RemoveClient(ID uuid.UUID) {
 	r.lock.Unlock()
 }
 
-func (r *Radio) GetAllSongs() ([]*domain.Song, error) {
-	return r.pl.GetAllSongs()
-}
-
-func (r *Radio) UpdateSongs() error {
-	return r.pl.UpdateSongs()
-}
-
 func (r *Radio) GetSampleRate() int {
 	return r.currentSongSampleRate
 }

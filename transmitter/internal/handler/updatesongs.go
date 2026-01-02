@@ -9,27 +9,27 @@ import (
 )
 
 type UpdateSongsHandler struct {
-	radio  radio.RadioServicer
+	pl     radio.PlaylistServicer
 	logger *zap.Logger
 	path   string
 }
 
 var _ handler.Handlerer = (*UpdateSongsHandler)(nil)
 
-func NewUpdateSongsHandler(radio radio.RadioServicer, logger *zap.Logger) *UpdateSongsHandler {
+func NewUpdateSongsHandler(pl radio.PlaylistServicer, logger *zap.Logger) *UpdateSongsHandler {
 	return &UpdateSongsHandler{
-		radio:  radio,
+		pl:     pl,
 		logger: logger,
 		path:   "/refresh",
 	}
 }
 
 func (h *UpdateSongsHandler) Handle(c *fiber.Ctx) error {
-	err := h.radio.UpdateSongs()
+	err := h.pl.UpdateSongs()
 	if err != nil {
 		return err
 	}
-	songs, err := h.radio.GetAllSongs()
+	songs, err := h.pl.GetAllSongs()
 	if err != nil {
 		h.logger.Error("Failed to get songs", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

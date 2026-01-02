@@ -2,6 +2,7 @@ package songrepository
 
 import (
 	_ "embed"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -18,6 +19,8 @@ var (
 	deleteSong string
 	//go:embed sql/getSongById.sql
 	getSongById string
+	//go:embed sql/getSongsByTitleOrArtist.sql
+	getSongsByTitleOrArtist string
 )
 
 type SongMapEntry struct {
@@ -144,6 +147,16 @@ func (sr *SongRepository) UpdateSongs(songs []*domain.Song) error {
 func (sr *SongRepository) GetAllSongs() ([]*SongDTO, error) {
 	var dtos []*SongDTO
 	if err := sr.storage.Select(&dtos, getSongs); err != nil {
+		return nil, err
+	}
+
+	return dtos, nil
+}
+
+func (sr *SongRepository) GetSongsByTitleOrArtist(keyword string) ([]*SongDTO, error) {
+	wildcard := fmt.Sprintf("%%%s%%", keyword)
+	var dtos []*SongDTO
+	if err := sr.storage.Select(&dtos, getSongsByTitleOrArtist, wildcard, wildcard); err != nil {
 		return nil, err
 	}
 

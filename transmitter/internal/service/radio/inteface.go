@@ -9,13 +9,12 @@ type RadioServicer interface {
 	AddClient() *Connection
 	RemoveClient(connectionID uuid.UUID)
 	GetSampleRate() int
-	UpdateSongs() error
-	GetAllSongs() ([]*domain.Song, error)
 }
 
 type PlaylistServicer interface {
 	UpdateSongs() error
 	GetAllSongs() ([]*domain.Song, error)
+	GetAllSongsByTitleOrArtist(keyword string) ([]*domain.Song, error)
 	GetAllSongsInQueue() []*domain.Song
 	EnqueueSong(songID uuid.UUID) error
 	DequeueSong() (*domain.Song, error)

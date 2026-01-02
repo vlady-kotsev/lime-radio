@@ -101,6 +101,20 @@ func (pl *PlaylistService) GetAllSongs() ([]*domain.Song, error) {
 	return songs, nil
 }
 
+func (pl *PlaylistService) GetAllSongsByTitleOrArtist(keyword string) ([]*domain.Song, error) {
+	songDTOs, err := pl.songRepo.GetSongsByTitleOrArtist(keyword)
+	if err != nil {
+		return []*domain.Song{}, nil
+	}
+
+	var songs []*domain.Song
+	for _, dto := range songDTOs {
+		songs = append(songs, dto.ToDomain())
+	}
+
+	return songs, nil
+}
+
 func (pl *PlaylistService) EnqueueSong(songID uuid.UUID) error {
 	songDTO, err := pl.songRepo.GetSongByID(songID)
 	if err != nil {
