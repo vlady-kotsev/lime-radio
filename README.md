@@ -1,4 +1,5 @@
-# Lime Radio
+# <img width="200px" src="https://github.com/user-attachments/assets/6bd4fad0-6af0-48a8-8cc6-c9ffda368d52" /> Lime Radio 
+
 
 An internet radio streaming platform with real-time chalga song requests, built with computer technologia.
 
@@ -13,17 +14,17 @@ Lime Radio uses an event-driven microservices architecture with two main service
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│      Client      │    │   Transmitter    │    │       DJ         │
-│   (Frontend)     │    │   (Streaming)    │    │  (Song Requests) │
+│      Client     │    │   Transmitter   │    │       DJ        │
+│   (Frontend)    │    │   (Streaming)   │    │  (Song Requests)│
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │ HTTP/WebSocket        │     Broker            │
-         │                       │                       │
-         └───────────────────── ┼─────────────────────┘
+         │                       │                    │
+         │ HTTP/WebSocket        │     Broker         │
+         │                       │                    │
+         └───────────────────────┼────────────────────┘
                                  │
                     ┌─────────────────┐
-                    │     Messaging    │
-                    │     Broker       │
+                    │     Messaging   │
+                    │     Broker      │
                     └─────────────────┘
 ```
 
