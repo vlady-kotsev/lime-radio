@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/vlady-kotsev/lime-radio/shared/domain"
+	transmitterdomain "github.com/vlady-kotsev/lime-radio/transmitter/internal/domain"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/repository"
 )
 
@@ -19,8 +20,14 @@ var (
 	deleteSong string
 	//go:embed sql/getSongById.sql
 	getSongById string
-	//go:embed sql/getSongsByTitleOrArtist.sql
-	getSongsByTitleOrArtist string
+	//go:embed sql/getSongsPaginated.sql
+	getSongsPaginated string
+	//go:embed sql/getSongsByTitleOrArtistPaginated.sql
+	getSongsByTitleOrArtistPaginated string
+	//go:embed sql/countSongs.sql
+	countSongs string
+	//go:embed sql/countSongsByTitleOrArtist.sql
+	countSongsByTitleOrArtist string
 )
 
 type SongMapEntry struct {
@@ -153,12 +160,36 @@ func (sr *SongRepository) GetAllSongs() ([]*SongDTO, error) {
 	return dtos, nil
 }
 
-func (sr *SongRepository) GetSongsByTitleOrArtist(keyword string) ([]*SongDTO, error) {
-	wildcard := fmt.Sprintf("%%%s%%", keyword)
+func (sr *SongRepository) GetSongsPaginated(params *transmitterdomain.PaginationParams) ([]*SongDTO, error) {
 	var dtos []*SongDTO
-	if err := sr.storage.Select(&dtos, getSongsByTitleOrArtist, wildcard, wildcard); err != nil {
+	if err := sr.storage.Select(&dtos, getSongsPaginated, params.GetLimit(), params.GetOffset()); err != nil {
 		return nil, err
 	}
-
 	return dtos, nil
+}
+
+func (sr *SongRepository) GetSongsByTitleOrArtistPaginated(keyword string, params *transmitterdomain.PaginationParams) ([]*SongDTO, error) {
+	wildcard := fmt.Sprintf("%%%s%%", keyword)
+	var dtos []*SongDTO
+	if err := sr.storage.Select(&dtos, getSongsByTitleOrArtistPaginated, wildcard, wildcard, params.GetLimit(), params.GetOffset()); err != nil {
+		return nil, err
+	}
+	return dtos, nil
+}
+
+func (sr *SongRepository) CountSongs() (int, error) {
+	var count int
+	if err := sr.storage.Get(&count, countSongs); err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (sr *SongRepository) CountSongsByTitleOrArtist(keyword string) (int, error) {
+	wildcard := fmt.Sprintf("%%%s%%", keyword)
+	var count int
+	if err := sr.storage.Get(&count, countSongsByTitleOrArtist, wildcard, wildcard); err != nil {
+		return 0, err
+	}
+	return count, nil
 }

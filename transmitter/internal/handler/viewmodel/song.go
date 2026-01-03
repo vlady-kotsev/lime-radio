@@ -2,6 +2,21 @@ package viewmodel
 
 import "github.com/vlady-kotsev/lime-radio/shared/domain"
 
+type PaginatedSongsViewModel struct {
+	Data    []SongViewModel `json:"data"`
+	Page    int             `json:"page"`
+	HasNext bool            `json:"has_next"`
+}
+
+func NewPaginatedSongsViewModel(songs []*domain.Song, page int, hasNext bool) *PaginatedSongsViewModel {
+
+	return &PaginatedSongsViewModel{
+		Data:    ToSongViewModels(songs),
+		Page:    page,
+		HasNext: hasNext,
+	}
+}
+
 type SongViewModel struct {
 	ID     string `json:"id"`
 	Artist string `json:"artist"`

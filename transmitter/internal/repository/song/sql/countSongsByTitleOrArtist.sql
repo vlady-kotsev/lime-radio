@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM songs WHERE title LIKE ? OR artist LIKE ?;

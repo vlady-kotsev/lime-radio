@@ -2,7 +2,8 @@ package radio
 
 import (
 	"github.com/google/uuid"
-	"github.com/vlady-kotsev/lime-radio/shared/domain"
+	shareddomain "github.com/vlady-kotsev/lime-radio/shared/domain"
+	"github.com/vlady-kotsev/lime-radio/transmitter/internal/domain"
 )
 
 type RadioServicer interface {
@@ -13,10 +14,11 @@ type RadioServicer interface {
 
 type PlaylistServicer interface {
 	UpdateSongs() error
-	GetAllSongs() ([]*domain.Song, error)
-	GetAllSongsByTitleOrArtist(keyword string) ([]*domain.Song, error)
-	GetAllSongsInQueue() []*domain.Song
+	GetAllSongs() ([]*shareddomain.Song, error)
+	GetSongsPaginated(params *domain.PaginationParams) (*domain.PaginatedResult[*shareddomain.Song], error)
+	GetSongsByTitleOrArtist(keyword string, params *domain.PaginationParams) (*domain.PaginatedResult[*shareddomain.Song], error)
+	GetAllSongsInQueue() []*shareddomain.Song
 	EnqueueSong(songID uuid.UUID) error
-	DequeueSong() (*domain.Song, error)
+	DequeueSong() (*shareddomain.Song, error)
 	GetQueueLength() int
 }

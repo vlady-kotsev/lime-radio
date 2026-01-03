@@ -9,8 +9,9 @@ import (
 
 	"github.com/dhowden/tag"
 	"github.com/google/uuid"
-	"github.com/vlady-kotsev/lime-radio/shared/domain"
+	shareddomain "github.com/vlady-kotsev/lime-radio/shared/domain"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
+	"github.com/vlady-kotsev/lime-radio/transmitter/internal/domain"
 	songrepository "github.com/vlady-kotsev/lime-radio/transmitter/internal/repository/song"
 	"go.uber.org/fx"
 )
@@ -19,7 +20,7 @@ type PlaylistService struct {
 	config      config.RadioConfiger
 	songsFolder string
 	songRepo    songrepository.SongRepositorer
-	songQueue   []*domain.Song
+	songQueue   []*shareddomain.Song
 }
 
 var _ PlaylistServicer = (*PlaylistService)(nil)
@@ -30,7 +31,7 @@ func NewPlaylist(lc fx.Lifecycle, songRepo songrepository.SongRepositorer, confi
 		songsFolder: config.GetSongFolder(),
 		songRepo:    songRepo,
 		config:      config,
-		songQueue:   make([]*domain.Song, 0, config.GetQueueMaxCount()),
+		songQueue:   make([]*shareddomain.Song, 0, config.GetQueueMaxCount()),
 	}
 
 	lc.Append(fx.Hook{
@@ -46,7 +47,7 @@ func (pl *PlaylistService) UpdateSongs() error {
 	if err != nil {
 		return err
 	}
-	var songs []*domain.Song
+	var songs []*shareddomain.Song
 	for _, e := range entries {
 		if e.IsDir() {
 			continue
@@ -81,33 +82,19 @@ func (pl *PlaylistService) UpdateSongs() error {
 			}
 		}
 
-		songs = append(songs, domain.NewSong(uuid.New().String(), artist, title, filePath))
+		songs = append(songs, shareddomain.NewSong(uuid.New().String(), artist, title, filePath))
 	}
 
 	return pl.songRepo.UpdateSongs(songs)
 }
 
-func (pl *PlaylistService) GetAllSongs() ([]*domain.Song, error) {
+func (pl *PlaylistService) GetAllSongs() ([]*shareddomain.Song, error) {
 	songDTOs, err := pl.songRepo.GetAllSongs()
 	if err != nil {
-		return []*domain.Song{}, nil
+		return []*shareddomain.Song{}, nil
 	}
 
-	var songs []*domain.Song
-	for _, dto := range songDTOs {
-		songs = append(songs, dto.ToDomain())
-	}
-
-	return songs, nil
-}
-
-func (pl *PlaylistService) GetAllSongsByTitleOrArtist(keyword string) ([]*domain.Song, error) {
-	songDTOs, err := pl.songRepo.GetSongsByTitleOrArtist(keyword)
-	if err != nil {
-		return []*domain.Song{}, nil
-	}
-
-	var songs []*domain.Song
+	var songs []*shareddomain.Song
 	for _, dto := range songDTOs {
 		songs = append(songs, dto.ToDomain())
 	}
@@ -125,7 +112,7 @@ func (pl *PlaylistService) EnqueueSong(songID uuid.UUID) error {
 	return nil
 }
 
-func (pl *PlaylistService) DequeueSong() (*domain.Song, error) {
+func (pl *PlaylistService) DequeueSong() (*shareddomain.Song, error) {
 	if len(pl.songQueue) == 0 {
 		return nil, fmt.Errorf("queue is empty")
 	}
@@ -139,6 +126,44 @@ func (pl *PlaylistService) GetQueueLength() int {
 	return len(pl.songQueue)
 }
 
-func (pl *PlaylistService) GetAllSongsInQueue() []*domain.Song {
+func (pl *PlaylistService) GetAllSongsInQueue() []*shareddomain.Song {
 	return pl.songQueue
+}
+
+func (pl *PlaylistService) GetSongsPaginated(params *domain.PaginationParams) (*domain.PaginatedResult[*shareddomain.Song], error) {
+	songDTOs, err := pl.songRepo.GetSongsPaginated(params)
+	if err != nil {
+		return nil, err
+	}
+
+	total, err := pl.songRepo.CountSongs()
+	if err != nil {
+		return nil, err
+	}
+
+	var songs []*shareddomain.Song
+	for _, dto := range songDTOs {
+		songs = append(songs, dto.ToDomain())
+	}
+
+	return domain.NewPaginatedResult(songs, total, params), nil
+}
+
+func (pl *PlaylistService) GetSongsByTitleOrArtist(keyword string, params *domain.PaginationParams) (*domain.PaginatedResult[*shareddomain.Song], error) {
+	songDTOs, err := pl.songRepo.GetSongsByTitleOrArtistPaginated(keyword, params)
+	if err != nil {
+		return nil, err
+	}
+
+	total, err := pl.songRepo.CountSongsByTitleOrArtist(keyword)
+	if err != nil {
+		return nil, err
+	}
+
+	var songs []*shareddomain.Song
+	for _, dto := range songDTOs {
+		songs = append(songs, dto.ToDomain())
+	}
+
+	return domain.NewPaginatedResult(songs, total, params), nil
 }

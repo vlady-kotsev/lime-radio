@@ -1,6 +1,7 @@
 package radio
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,22 +24,36 @@ type Connection struct {
 	BroadcastChannel chan []byte
 }
 
-func NewConnection(broadcastChan chan []byte) *Connection {
+func NewConnection() *Connection {
 	return &Connection{
 		ID:               uuid.New(),
 		DataChan:         make(chan []byte, ConnectionBufferLength),
 		DoneChan:         make(chan struct{}),
-		BroadcastChannel: broadcastChan,
+		BroadcastChannel: make(chan []byte, ConnectionBufferLength),
 	}
+}
+
+func (c *Connection) Debug() {
+	fmt.Printf("DEBUG BC: %.2f%%\n", float64(len(c.BroadcastChannel))/float64(cap(c.BroadcastChannel)))
+	fmt.Printf("DEBUG DATA: %.2f%%\n", float64(len(c.DataChan))/float64(cap(c.DataChan)))
 }
 
 func (c *Connection) ConnectionLoop() error {
 	for {
 		select {
 		case data := <-c.BroadcastChannel:
+			dataCopy := make([]byte, len(data))
+			copy(dataCopy, data)
+
 			sleepInterval := c.calculateSleepInteval()
 			time.Sleep(sleepInterval)
-			c.DataChan <- data
+
+			select {
+			case c.DataChan <- dataCopy:
+				// Successfully sent to client
+			default:
+				// Client buffer is full, skip this chunk to avoid blocking
+			}
 		case <-c.DoneChan:
 			return nil
 		}

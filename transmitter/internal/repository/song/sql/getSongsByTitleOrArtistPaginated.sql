@@ -1,0 +1,1 @@
+SELECT id, artist, title, path FROM songs WHERE title LIKE ? OR artist LIKE ? LIMIT ? OFFSET ?;

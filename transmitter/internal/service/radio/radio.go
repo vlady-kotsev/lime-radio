@@ -71,7 +71,7 @@ func NewRadio(lc fx.Lifecycle, logger *zap.Logger, config config.RadioConfiger, 
 }
 
 func (r *Radio) AddClient() *Connection {
-	newConnection := NewConnection(r.broadcastChan)
+	newConnection := NewConnection()
 	r.lock.Lock()
 	r.connections[newConnection.ID] = newConnection
 	r.lock.Unlock()
@@ -89,6 +89,21 @@ func (r *Radio) RemoveClient(ID uuid.UUID) {
 
 func (r *Radio) GetSampleRate() int {
 	return r.currentSongSampleRate
+}
+
+func (r *Radio) broadcastToAllClients(data []byte) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	for _, conn := range r.connections {
+		select {
+		case conn.BroadcastChannel <- data:
+			// Successfully sent to connection's broadcast channel
+		default:
+			// Connection's broadcast buffer is full, skip this chunk
+			r.logger.Warn("Connection broadcast buffer full, dropping audio chunk", zap.String("client_id", conn.ID.String()))
+		}
+	}
 }
 
 func (r *Radio) startBroadcast() error {
@@ -145,7 +160,7 @@ func (r *Radio) startBroadcast() error {
 					dataCopy := make([]byte, bytesRead)
 					copy(dataCopy, buf[:bytesRead])
 
-					r.broadcastChan <- dataCopy
+					r.broadcastToAllClients(dataCopy)
 
 					waitTime := calculateStreamIntervalForBytes(decoder.SampleRate(), bytesRead)
 					time.Sleep(waitTime)

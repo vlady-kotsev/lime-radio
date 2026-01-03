@@ -2,12 +2,16 @@ package songrepository
 
 import (
 	"github.com/google/uuid"
-	"github.com/vlady-kotsev/lime-radio/shared/domain"
+	shareddomain "github.com/vlady-kotsev/lime-radio/shared/domain"
+	"github.com/vlady-kotsev/lime-radio/transmitter/internal/domain"
 )
 
 type SongRepositorer interface {
-	UpdateSongs(songs []*domain.Song) error
+	UpdateSongs(songs []*shareddomain.Song) error
 	GetAllSongs() ([]*SongDTO, error)
 	GetSongByID(ID uuid.UUID) (*SongDTO, error)
-	GetSongsByTitleOrArtist(keyword string) ([]*SongDTO, error)
+	GetSongsPaginated(params *domain.PaginationParams) ([]*SongDTO, error)
+	GetSongsByTitleOrArtistPaginated(keyword string, params *domain.PaginationParams) ([]*SongDTO, error)
+	CountSongs() (int, error)
+	CountSongsByTitleOrArtist(keyword string) (int, error)
 }
