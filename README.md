@@ -28,7 +28,7 @@ Lime Radio uses an event-driven microservices architecture with two main service
                     └─────────────────┘
 ```
 
-### Transmitter Service (Port 8080)
+### Transmitter Service
 
 The core streaming engine responsible for:
 
@@ -37,7 +37,7 @@ The core streaming engine responsible for:
 - **Precise Timing**: 20ms chunks with monotonic clock for drift-free playback
 - **Queue Management**: Real-time song request processing
 
-### DJ Service (Port 8081)
+### DJ Service
 
 Handles song requests and payments:
 
@@ -45,7 +45,7 @@ Handles song requests and payments:
 - **Event Publishing**: Sends validated requests to transmitter
 - **Payment Middleware**: Secures endpoints with transaction verification
 
-### NATS Messaging (Port 4222)
+### NATS Messaging
 
 Event-driven communication:
 
@@ -84,7 +84,7 @@ Event-driven communication:
 
 ## API Reference
 
-### Transmitter Service (8080)
+### Transmitter Service
 
 #### Streaming Endpoints
 
@@ -114,7 +114,7 @@ GET /api/queue/count
 # Returns: Number of songs in queue
 ```
 
-### DJ Service (8081)
+### DJ Service
 
 #### Song Requests
 
