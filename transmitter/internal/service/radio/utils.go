@@ -3,7 +3,6 @@ package radio
 import (
 	"encoding/binary"
 	"fmt"
-	"time"
 )
 
 func CreateWAVHeader(sampleRate int) ([]byte, error) {
@@ -32,14 +31,4 @@ func CreateWAVHeader(sampleRate int) ([]byte, error) {
 	copy(header[36:40], "data")
 	binary.LittleEndian.PutUint32(header[40:44], 0x7FFFFFFF)
 	return header, nil
-}
-
-// SpeedUp is used because browser falls behind
-const SpeedUp float64 = 0.75
-
-func calculateStreamIntervalForBytes(sampleRate int, numBytes int) time.Duration {
-	// 16-bit stereo
-	bytesPerSecond := float64(sampleRate * 2 * 2)
-	intervalMs := (float64(numBytes) * 1000.0) / bytesPerSecond
-	return time.Duration((intervalMs - SpeedUp) * float64(time.Millisecond))
 }

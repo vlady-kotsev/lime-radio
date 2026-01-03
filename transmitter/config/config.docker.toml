@@ -1,0 +1,16 @@
+[app]
+port = 8080
+
+[radio]
+songs_folder = "songs"
+queue_max_count = 15
+
+[auth]
+shared_secret = "super-secret-value"
+allowed_origins = ["http://localhost:5173"]
+expiration_minutes = 100
+
+[event]
+broker_url = "nats://nats:4222"
+username = "local"
+password = "TiYTqbr9nX87Jjf1DJZ1mocySAnLPwnV"

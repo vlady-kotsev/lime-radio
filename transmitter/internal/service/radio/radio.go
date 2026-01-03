@@ -1,7 +1,6 @@
 package radio
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"os"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hajimehoshi/go-mp3"
-	"github.com/vlady-kotsev/lime-radio/shared/domain"
 	"github.com/vlady-kotsev/lime-radio/transmitter/internal/config"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -18,9 +16,11 @@ import (
 )
 
 const (
-	SongQueueLength        int = 10
 	BroadcastChannelLength int = 10_000
-	ChunkSize              int = 1024
+	// Target 20ms of PCM audio per chunk (will be calculated based on sample rate)
+	ChunkDurationMs int = 20
+	// Buffer ahead time - server stays this much ahead of playback
+	BufferAheadMs int = 200
 )
 
 type Radio struct {
@@ -30,8 +30,6 @@ type Radio struct {
 	connections           map[uuid.UUID]*Connection
 	lock                  sync.RWMutex
 	currentSongSampleRate int
-	songQueue             chan *domain.Song
-	broadcastChan         chan []byte
 	group                 *errgroup.Group
 }
 
@@ -39,14 +37,12 @@ var _ RadioServicer = (*Radio)(nil)
 
 func NewRadio(lc fx.Lifecycle, logger *zap.Logger, config config.RadioConfiger, pl PlaylistServicer) *Radio {
 	r := Radio{
-		logger:        logger,
-		config:        config,
-		pl:            pl,
-		lock:          sync.RWMutex{},
-		connections:   make(map[uuid.UUID]*Connection),
-		songQueue:     make(chan *domain.Song, SongQueueLength),
-		broadcastChan: make(chan []byte, BroadcastChannelLength),
-		group:         &errgroup.Group{},
+		logger:      logger,
+		config:      config,
+		pl:          pl,
+		lock:        sync.RWMutex{},
+		connections: make(map[uuid.UUID]*Connection),
+		group:       &errgroup.Group{},
 	}
 
 	lc.Append(fx.Hook{
@@ -62,7 +58,6 @@ func NewRadio(lc fx.Lifecycle, logger *zap.Logger, config config.RadioConfiger, 
 			for _, conn := range r.connections {
 				r.RemoveClient(conn.ID)
 			}
-			close(r.broadcastChan)
 			return r.group.Wait()
 		},
 	})
@@ -75,7 +70,9 @@ func (r *Radio) AddClient() *Connection {
 	r.lock.Lock()
 	r.connections[newConnection.ID] = newConnection
 	r.lock.Unlock()
-	r.group.Go(newConnection.ConnectionLoop)
+	r.group.Go(func() error {
+		return newConnection.ConnectionLoop()
+	})
 	return newConnection
 }
 
@@ -83,6 +80,7 @@ func (r *Radio) RemoveClient(ID uuid.UUID) {
 	r.lock.Lock()
 	conn := r.connections[ID]
 	close(conn.DoneChan)
+	close(conn.BroadcastChannel)
 	delete(r.connections, ID)
 	r.lock.Unlock()
 }
@@ -111,10 +109,13 @@ func (r *Radio) startBroadcast() error {
 	if err != nil {
 		return err
 	}
+
+	streamStartTime := time.Now()
+	totalSamplesStreamed := int64(0)
+
 	// Playback loop
 	for {
 		for _, song := range songs {
-			// Check if we have songs in queue
 			if r.pl.GetQueueLength() > 0 {
 				requestedSong, err := r.pl.DequeueSong()
 				if err != nil {
@@ -129,26 +130,45 @@ func (r *Radio) startBroadcast() error {
 				r.logger.Error("Error opening song", zap.String("path", song.Path), zap.Error(err))
 				continue
 			}
-			defer f.Close()
 
-			data, err := io.ReadAll(f)
-			if err != nil {
-				r.logger.Error("Error reading song file", zap.String("path", song.Path), zap.Error(err))
-				continue
-			}
-
-			reader := bytes.NewReader(data)
-			decoder, err := mp3.NewDecoder(reader)
+			decoder, err := mp3.NewDecoder(f)
 			if err != nil {
 				r.logger.Error("Error creating decoder", zap.String("path", song.Path), zap.Error(err))
+				f.Close()
 				continue
 			}
-			r.currentSongSampleRate = decoder.SampleRate()
 
-			buf := make([]byte, ChunkSize)
+			r.currentSongSampleRate = decoder.SampleRate()
+			r.logger.Info("Current Sample Rate", zap.Int("sample_rate", r.currentSongSampleRate))
+
+			// Calculate chunk size for exactly 20ms of PCM audio
+			// 16-bit stereo = 4 bytes per sample
+			samplesPerChunk := (r.currentSongSampleRate * ChunkDurationMs) / 1000
+			targetChunkSize := samplesPerChunk * 4
+
+			var chunkBuffer []byte
+			readBuf := make([]byte, 8192)
+
+			// Buffer ahead calculation
+			bufferAheadSamples := int64((r.currentSongSampleRate * BufferAheadMs) / 1000)
+			chunksBufferedAhead := 0
+			// How many 20ms chunks to buffer ahead
+			targetBufferChunks := int((bufferAheadSamples * 4) / int64(targetChunkSize))
+
+			r.logger.Info("Starting song",
+				zap.String("path", song.Path),
+				zap.Int("sample_rate", r.currentSongSampleRate),
+				zap.Int("chunk_size_bytes", targetChunkSize),
+				zap.Int("buffer_ahead_chunks", targetBufferChunks))
+
 			for {
-				bytesRead, err := decoder.Read(buf)
+				n, err := decoder.Read(readBuf)
 				if err == io.EOF {
+					// Process any remaining data in buffer
+					if len(chunkBuffer) > 0 {
+						r.broadcastToAllClients(chunkBuffer)
+						totalSamplesStreamed += int64(len(chunkBuffer) / 4)
+					}
 					break
 				}
 				if err != nil {
@@ -156,16 +176,43 @@ func (r *Radio) startBroadcast() error {
 					break
 				}
 
-				if bytesRead > 0 {
-					dataCopy := make([]byte, bytesRead)
-					copy(dataCopy, buf[:bytesRead])
+				if n > 0 {
+					chunkBuffer = append(chunkBuffer, readBuf[:n]...)
 
-					r.broadcastToAllClients(dataCopy)
+					// Process complete chunks of exactly 20ms
+					for len(chunkBuffer) >= targetChunkSize {
+						chunk := make([]byte, targetChunkSize)
+						copy(chunk, chunkBuffer[:targetChunkSize])
 
-					waitTime := calculateStreamIntervalForBytes(decoder.SampleRate(), bytesRead)
-					time.Sleep(waitTime)
+						r.broadcastToAllClients(chunk)
+						samplesInThisChunk := int64(targetChunkSize / 4)
+						totalSamplesStreamed += samplesInThisChunk
+
+						chunksBufferedAhead++
+
+						// Only apply timing after buffer-ahead period
+						if chunksBufferedAhead > targetBufferChunks {
+							// Calculate exact expected time for this chunk
+							expectedTime := streamStartTime.Add(
+								time.Duration((totalSamplesStreamed-bufferAheadSamples)*1000/int64(r.currentSongSampleRate)) * time.Millisecond,
+							)
+
+							now := time.Now()
+							if expectedTime.After(now) {
+								time.Sleep(expectedTime.Sub(now))
+							}
+						} else if chunksBufferedAhead == targetBufferChunks {
+							r.logger.Info("Buffer-ahead complete, starting timed playback",
+								zap.Int("chunks_sent", chunksBufferedAhead),
+								zap.Int("target_buffer_chunks", targetBufferChunks))
+						}
+
+						// Remove processed chunk from buffer
+						chunkBuffer = chunkBuffer[targetChunkSize:]
+					}
 				}
 			}
+			f.Close()
 		}
 	}
 }

@@ -1,0 +1,17 @@
+[app]
+port = 8081
+
+[payment]
+network = "devnet"
+amount_lamports = "4545"
+receiver_address = "5sKBF5yF6hQXZExkUKHBSnW8UgiXwpvijDNakWPm4u15"
+
+[auth]
+shared_secret = "super-secret-value"
+allowed_origins = ["http://localhost:5173"]
+expiration_minutes = 100
+
+[event]
+broker_url = "nats://nats:4222"
+username = "local"
+password = "TiYTqbr9nX87Jjf1DJZ1mocySAnLPwnV"

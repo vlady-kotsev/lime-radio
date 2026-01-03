@@ -1,0 +1,56 @@
+services:
+  nats:
+    image: nats:2.12-alpine
+    container_name: lime-radio-nats
+    command:
+      - "--jetstream"
+      - "--store_dir=/data"
+      - "--user=local"
+      - "--pass=TiYTqbr9nX87Jjf1DJZ1mocySAnLPwnV"
+    ports:
+      - "4222:4222"
+    volumes:
+      - nats_data:/data
+    networks:
+      - lime-radio-network
+
+  transmitter:
+    build:
+      context: .
+      dockerfile: transmitter/docker/Dockerfile
+    container_name: lime-radio-transmitter
+    ports:
+      - "8080:8080"
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on: 
+      - nats
+    volumes:
+      - ./transmitter/songs:/root/songs:ro
+      - transmitter_data:/root/internal/repository/data
+    networks:
+      - lime-radio-network
+    restart: unless-stopped
+
+  dj:
+    build:
+      context: .
+      dockerfile: dj/docker/Dockerfile
+    container_name: lime-radio-dj
+    ports:
+      - "8081:8081"
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on: 
+      - nats
+    networks:
+      - lime-radio-network
+    restart: unless-stopped
+
+volumes:
+  nats_data:
+  transmitter_data:
+
+networks:
+  lime-radio-network:
+    driver: bridge
