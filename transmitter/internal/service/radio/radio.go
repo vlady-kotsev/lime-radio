@@ -134,7 +134,10 @@ func (r *Radio) startBroadcast() error {
 			decoder, err := mp3.NewDecoder(f)
 			if err != nil {
 				r.logger.Error("Error creating decoder", zap.String("path", song.Path), zap.Error(err))
-				f.Close()
+				err = f.Close()
+				if err != nil {
+					r.logger.Error("Error closing file", zap.String("path", f.Name()), zap.Error(err))
+				}
 				continue
 			}
 
@@ -212,7 +215,10 @@ func (r *Radio) startBroadcast() error {
 					}
 				}
 			}
-			f.Close()
+			err = f.Close()
+			if err != nil {
+				r.logger.Error("Error closing file", zap.String("path", f.Name()), zap.Error(err))
+			}
 		}
 	}
 }
