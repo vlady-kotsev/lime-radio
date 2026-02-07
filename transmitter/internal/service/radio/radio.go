@@ -110,9 +110,6 @@ func (r *Radio) startBroadcast() error {
 		return err
 	}
 
-	streamStartTime := time.Now()
-	totalSamplesStreamed := int64(0)
-
 	// Playback loop
 	for {
 		for _, song := range songs {
@@ -158,6 +155,10 @@ func (r *Radio) startBroadcast() error {
 			// How many 20ms chunks to buffer ahead
 			targetBufferChunks := int((bufferAheadSamples * 4) / int64(targetChunkSize))
 
+			// Reset timing per song to avoid sample rate mixing issues
+			songStartTime := time.Now()
+			songSamplesStreamed := int64(0)
+
 			r.logger.Info("Starting song",
 				zap.String("path", song.Path),
 				zap.Int("sample_rate", r.currentSongSampleRate),
@@ -170,7 +171,6 @@ func (r *Radio) startBroadcast() error {
 					// Process any remaining data in buffer
 					if len(chunkBuffer) > 0 {
 						r.broadcastToAllClients(chunkBuffer)
-						totalSamplesStreamed += int64(len(chunkBuffer) / 4)
 					}
 					break
 				}
@@ -189,15 +189,15 @@ func (r *Radio) startBroadcast() error {
 
 						r.broadcastToAllClients(chunk)
 						samplesInThisChunk := int64(targetChunkSize / 4)
-						totalSamplesStreamed += samplesInThisChunk
+						songSamplesStreamed += samplesInThisChunk
 
 						chunksBufferedAhead++
 
 						// Only apply timing after buffer-ahead period
 						if chunksBufferedAhead > targetBufferChunks {
 							// Calculate exact expected time for this chunk
-							expectedTime := streamStartTime.Add(
-								time.Duration((totalSamplesStreamed-bufferAheadSamples)*1000/int64(r.currentSongSampleRate)) * time.Millisecond,
+							expectedTime := songStartTime.Add(
+								time.Duration((songSamplesStreamed-bufferAheadSamples)*1000/int64(r.currentSongSampleRate)) * time.Millisecond,
 							)
 
 							now := time.Now()
